@@ -1,0 +1,29 @@
+<head>
+    <script
+    src="https://code.jquery.com/jquery-3.2.1.js"
+    integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+    crossorigin="anonymous"></script>
+    <script type="text/javascript" src="src/objects.js"></script>
+    <script type="text/javascript" src="src/renderinterface.js"></script>
+    <script type="text/javascript" src="src/world.js"></script>
+    <script type="text/javascript" src="src/app.js"></script>
+<script type="text/javascript" src="src/renderer.js"></script>
+<script type="text/javascript" src="src/utils.js"></script>
+
+</head>
+
+<body>
+<canvas id="playground" width="640" height="400"></canvas>
+
+<script>
+    window.addEventListener("load", function() {
+    
+        var world = new CM.World(10,10);
+        var engine = new CM.CloudEngine(new CM.Renderer("playground"),world, new CM.Point(110,110));
+        engine.init();
+        engine.run();
+    });
+
+</script>
+
+</body>
