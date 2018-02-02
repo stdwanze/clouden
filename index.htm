@@ -3,6 +3,8 @@
     src="https://code.jquery.com/jquery-3.2.1.js"
     integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
     crossorigin="anonymous"></script>
+    <script type="text/javascript" src="src/imagerepo.js"></script>
+    
     <script type="text/javascript" src="src/objects.js"></script>
     <script type="text/javascript" src="src/renderinterface.js"></script>
     <script type="text/javascript" src="src/world.js"></script>
@@ -19,9 +21,13 @@
     window.addEventListener("load", function() {
     
         var world = new CM.World(10,10);
-        var engine = new CM.CloudEngine(new CM.Renderer("playground"),world, new CM.Point(110,110));
+        var repo = new CM.ImageRepo();
+        setTimeout(function (){
+            var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(110,110));
         engine.init();
         engine.run();
+        },1000)
+    
     });
 
 </script>

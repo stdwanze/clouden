@@ -132,7 +132,7 @@ CM.World = class World{
             var nearest = this.objects[0];
             var currDist = Number.MAX_VALUE;
             this.objects.forEach(_=> {
-                var d = CM.distance(_.position,position);
+                var d = CM.distance(_.getMidPoint(),position);
                 if(d < currDist)
                 {
                     nearest = _;

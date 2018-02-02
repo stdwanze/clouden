@@ -21,9 +21,6 @@ CM.Renderer = class Renderer extends Renderinterface{
     {
        
 
-
-
-
         this.ctxt.fillStyle = color;
 
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
@@ -47,6 +44,16 @@ CM.Renderer = class Renderer extends Renderinterface{
         // the fill color
         this.ctxt.fillStyle = color;
         this.ctxt.fill();
+    }
+    drawImageStatic(image,sizex,sizey)
+    {
+        this.ctxt.drawImage(image,this.canvas.width/2-sizex/2,this.canvas.height/2-sizey/2,sizex, sizey);
+    }
+    drawImage(image,x1,y1,sizex,sizey)
+    {
+        var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
+        var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
+        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom, sizey*this.zoom);
     }
     translateAndZoom(coord,base)
     {

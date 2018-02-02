@@ -1,23 +1,33 @@
 CM = window.CM || {};
 
 CM.CloudPlayer = class Player extends CM.MoveableObject {
-    constructor(position){
-      super(position);
+    constructor(position, image){
+      super(position, image.width,image.height,3);
+    
+      this.sprite = new CM.Sprite(image , position, true);
       this.right();
       
-       this.height = 3;
        this.vehicle = null;
     }
     
     draw(renderer){
+
+
+        
 
         if(this.vehicle != null)
         {
             // draw nothing?
         }
         else {
-            renderer.drawRectangleStatic(20,20,"#0000FF");
-            renderer.drawTriangleStatic(this.p1,this.p2,this.p3,"#0000FF");
+            if(this.sprite != null)
+            {
+              this.sprite.draw(renderer);
+            }
+            else{
+                renderer.drawRectangleStatic(20,20,"#0000FF");
+                renderer.drawTriangleStatic(this.p1,this.p2,this.p3,"#0000FF");
+            }
         }
     }
     left(){
@@ -41,12 +51,16 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         this.p3 = new CM.Point(10,-10);
     }
     descend(val){
-        this.height += val;
-        if( this.height >= 3)  this.height = 3;
+        this.z += val;
+        if( this.z >= 3)  this.z = 3;
+        if(this.isMounted()) this.vehicle.z = this.z;
     }
     ascend(val){
-        this.height -= val;
-        if( this.height <= 0.5)  this.height = 0.5;
+        if(this.isMounted()){
+            this.z -= val;
+            if( this.z <= 0.5)  this.z = 0.5;
+            this.vehicle.z = this.z;
+        }
     }
     move(x,y)
     {
@@ -55,10 +69,14 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         {
             this.vehicle.move(x,y);
         }
+        if(this.sprite != null)
+        {
+            this.sprite.move(x,y);
+        }
     }
     mount(vehicle)
     {
-        if(this.height != 3) return false;
+        if(this.z != 3) return false;
         if(vehicle != null)
         {
             if(this.isInRange(vehicle)){
@@ -71,6 +89,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         return false;
     }
     dismount(){
+        if(this.z != 3) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
   //      v.position.move(this.position.x*3,this.position.y*3);
@@ -82,8 +101,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     isInRange(cloudobject)
     {
-       var distance= CM.distance(this.position,cloudobject.position);
-       if(distance < 10)
+       var distance= CM.distance(this.getMidPoint(),cloudobject.getMidPoint());
+       if(distance < 30)
        {
            return true;
        }
@@ -93,11 +112,11 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
 }
 
 CM.CloudEngine=    class CloudEngine{
-        constructor( renderer,world, pos)
+        constructor( renderer,world,imagerepo, pos)
         {
             this.startPos = pos;
             this.world = world;
-            
+            this.imagerepo = imagerepo;
             this.inputHandler = new CM.InputHandler();
             this.renderer = renderer;
             this.player = null ;
@@ -113,7 +132,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         tickndraw(){
 
-            this.renderer.setZoom(this.player.height);
+            this.renderer.setZoom(this.player.z);
             this.renderer.clear(); 
             
             this.renderer.updatePos(this.player.position);
@@ -148,7 +167,7 @@ CM.CloudEngine=    class CloudEngine{
             this.player.move(-1*this.speed,0);
         }
         tryMount(){
-            var object = this.world.getNearestObject(this.player.position);
+            var object = this.world.getNearestObject(this.player.getMidPoint());
             var mounted = this.player.mount(object);
           
 
@@ -184,9 +203,9 @@ CM.CloudEngine=    class CloudEngine{
         }
         init(){
 
-                this.player = new CM.CloudPlayer(this.startPos);
-                this.world.addObject( new CM.Vehicle(this.startPos));
-                this.world.addObject( new CM.Vehicle(new CM.Point(400,400)));
+                this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("player"));
+                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3));
+                this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3));
                 
                 this.tryMount();
 
