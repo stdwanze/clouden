@@ -13,6 +13,9 @@ CM.CloudObject = class CloudObject {
     getMidPoint(){
         return new CM.Point(this.position.x+this.sizeX/2, this.position.y+this.sizeY/2)
     }
+    tick(){
+        return;
+    }
 }
 CM.MoveableObject = class Moveable extends CM.CloudObject{
     constructor(location,sizex,sizey,z)
@@ -52,13 +55,13 @@ CM.Vehicle = class Vehicle extends CM.MoveableObject{
      }
 }
 
-CM.VehicleSprite = class Vehicle extends CM.MoveableObject{
-    constructor(location,image,z)
+CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
+    constructor(location,image,z,scalingfactor)
     {
         console.log("init sprite "+image.src);
       super(location,image.width,image.height,z);
       this.mountedState = false;
-      this.sprite = new CM.Sprite(image,location,false);
+      this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
     }
     setMountedState(val)
     {
@@ -74,6 +77,13 @@ CM.VehicleSprite = class Vehicle extends CM.MoveableObject{
      {
         this.sprite.draw(renderer);
       
+     }
+     tick(){
+         if(this.ticker) this.ticker(this)
+     }
+     setTicker(func)
+     {
+        this.ticker = func;
      }
 }
 CM.AABB = class AABB{
@@ -91,11 +101,12 @@ CM.AABB = class AABB{
 
 CM.Sprite = class Sprite extends CM.MoveableObject{
     
-                   constructor(image, location,z, isStatic) {
+                   constructor(image, location,z, isStatic, scalingfactor) {
 
                         super(location,image.width,image.height,z);
                         //this.image = image;
-                        this.static = isStatic; 
+                        this.static = isStatic;
+                        this.scalingfactor = scalingfactor;
                         this.init(image);
                     }
     
@@ -111,11 +122,11 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                     draw(renderer) {
                         if(this.static)
                         {
-                            renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3);
+                            renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3,this.scalingfactor);
                             
                         }
                         else{
-                         renderer.drawImage(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY);
+                         renderer.drawImage(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY, this.scalingfactor);
                         }
                     
                     };

@@ -4,7 +4,9 @@ CM.ImageRepo = class Repo{
 
 		constructor() {
 					this.register("img/player.png", "player");
-				    this.register("img/blimp.png", "blimp");
+					this.register("img/blimp.png", "blimp");
+					this.register("img/cloud.png", "cloud");
+					
 				// //	this.register("img/player_right.png", "playerRight");
 				// 	this.register("img/coinBronze.png", "bronzecoin");
 				// 	this.register("img/coinSilver.png", "silvercoin");

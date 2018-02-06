@@ -45,15 +45,15 @@ CM.Renderer = class Renderer extends Renderinterface{
         this.ctxt.fillStyle = color;
         this.ctxt.fill();
     }
-    drawImageStatic(image,sizex,sizey)
+    drawImageStatic(image,sizex,sizey,scalingfactor)
     {
-        this.ctxt.drawImage(image,this.canvas.width/2-sizex/2,this.canvas.height/2-sizey/2,sizex, sizey);
+        this.ctxt.drawImage(image,this.canvas.width/2-sizex/2,this.canvas.height/2-sizey/2,sizex*scalingfactor, sizey*scalingfactor);
     }
-    drawImage(image,x1,y1,sizex,sizey)
+    drawImage(image,x1,y1,sizex,sizey, scalingfactor)
     {
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
-        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom, sizey*this.zoom);
+        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom*scalingfactor, sizey*this.zoom*scalingfactor);
     }
     translateAndZoom(coord,base)
     {

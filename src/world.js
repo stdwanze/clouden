@@ -54,6 +54,9 @@ CM.World = class World{
 
         this.world = [];
         this.objects =[];
+        this.cachedHolder = {};
+        this.lastX = -1;
+        this.lastY = -1;
 
         this.init(sizeX,sizeY,this.CHUNKWIDTHINTILES , this.TILESIZE);
     }
@@ -62,32 +65,38 @@ CM.World = class World{
         var x = Math.floor(location.x / (this.TILESIZE*this.CHUNKWIDTHINTILES));
         var y = Math.floor(location.y / (this.TILESIZE*this.CHUNKWIDTHINTILES));
         
-        
-        var holder = { tiles : []};
-        // 1 2 3
-        // 4 x 5
-        // 6 7 8
-        var st = this.selectTiles.bind(this,x,y,holder);
-        //1 
-        st(-1,-1);
-        //2
-        st(0,-1);
-        //3
-        st(1,-1 );
-        //4
-        st(-1,0 );
-        //5
-        st(1,0);
-        //6
-        st(-1,1);
-        //7
-        st(0,1);
-        //8
-        st(1,1);
-        //self
-        st(0,0);
-        
-        return holder.tiles;
+        if(x == this.lastX && y == this.lastY) return this.cachedHolder.tiles;
+        else
+        {
+            var holder = { tiles : []};
+            // 1 2 3
+            // 4 x 5
+            // 6 7 8
+            var st = this.selectTiles.bind(this,x,y,holder);
+            //1 
+            st(-1,-1);
+            //2
+            st(0,-1);
+            //3
+            st(1,-1 );
+            //4
+            st(-1,0 );
+            //5
+            st(1,0);
+            //6
+            st(-1,1);
+            //7    
+            st(0,1);
+            //8
+            st(1,1);
+            //self
+            st(0,0);
+            this.cachedHolder = holder;
+            this.lastX =x;
+            this.lastY = y;
+            return holder.tiles;
+
+        }
     }
     selectTiles(x,y,holder, offsetx,offsety)
     {
@@ -117,7 +126,11 @@ CM.World = class World{
         return row;
     }
     getObjects(){
-        return this.objects;
+        return this.objects.sort(function (a,b) {
+            if(a.z > b.z) return -1;
+            if( a.z == b.z) return 0;
+            else return 1;
+        });;
     }
     addObject(object)
     {

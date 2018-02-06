@@ -4,7 +4,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     constructor(position, image){
       super(position, image.width,image.height,3);
     
-      this.sprite = new CM.Sprite(image , position, true);
+      this.sprite = new CM.Sprite(image , position,3, true,0.3);
       this.right();
       
        this.vehicle = null;
@@ -142,6 +142,7 @@ CM.CloudEngine=    class CloudEngine{
 
             this.world.getObjects().forEach(element =>
             {
+                element.tick();
                 this.renderer.draw(element);
             });
 
@@ -204,11 +205,24 @@ CM.CloudEngine=    class CloudEngine{
         init(){
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("player"));
-                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3));
-                this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3));
+                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3,0.5));
+                this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3,0.5));
                 
-                this.tryMount();
-
+               // this.tryMount();
+                var c = new CM.VehicleSprite(this.startPos, this.imagerepo.getImage("cloud"),2,1);
+                c.setTicker( 
+                    function (startPos)
+                {
+                    var s = startPos;
+                    return function (v){
+                    v.move(-1,0);
+                    if(v.position.x < 0){
+                       v.move(s.x,0);
+                        console.log("reset");
+                    } 
+                    };
+                }(this.startPos));
+                this.world.addObject(c);
 
                 window.requestAnimFrame = (function(callback) {
                     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
