@@ -9,6 +9,7 @@ CM.CloudObject = class CloudObject {
         this.sizeX = sizex;
         this.sizeY = sizey;
         this.z = z;
+        this.interactable = false;
     }
     getMidPoint(){
         return new CM.Point(this.position.x+this.sizeX/2, this.position.y+this.sizeY/2)
@@ -35,7 +36,7 @@ CM.Vehicle = class Vehicle extends CM.MoveableObject{
     {
       super(location,sizex,sizey,z);
       this.mountedState = false;
-      
+      this.interactable = true;
     }
     setMountedState(val)
     {
@@ -62,6 +63,8 @@ CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
       super(location,image.width,image.height,z);
       this.mountedState = false;
       this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
+      this.interactable = true;
+    
     }
     setMountedState(val)
     {

@@ -4,6 +4,7 @@
     integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
     crossorigin="anonymous"></script>
     <script type="text/javascript" src="src/imagerepo.js"></script>
+    <script type="text/javascript" src="src/simulations.js"></script>
     
     <script type="text/javascript" src="src/objects.js"></script>
     <script type="text/javascript" src="src/renderinterface.js"></script>
@@ -22,7 +23,26 @@
     
         var world = new CM.World(10,10);
         var repo = new CM.ImageRepo();
+        var cloudSource = new CM.CloudSource(world.getSizeX(), world.getSizeY(), function (startPosX,startPosY)
+        {
+            var startPos = new CM.Point(startPosX,startPosY);
+            var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),2,1);
+                c.setTicker( 
+                    function (startPos)
+                {
+                    var s = startPos;
+                    return function (v){
+                    v.move(-1,0);
+                    if(v.position.x < 0){
+                       v.move(s.x,0);
+                        console.log("reset");
+                    } 
+                    };
+                }(startPos));
+              return c;
+        });
         setTimeout(function (){
+            world.addObjects(cloudSource.generateClouds(1,1));
             var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(110,110));
         engine.init();
         engine.run();

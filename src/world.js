@@ -57,8 +57,16 @@ CM.World = class World{
         this.cachedHolder = {};
         this.lastX = -1;
         this.lastY = -1;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
 
         this.init(sizeX,sizeY,this.CHUNKWIDTHINTILES , this.TILESIZE);
+    }
+    getSizeX(){
+        return this.sizeX*this.TILESIZE*this.CHUNKWIDTHINTILES;
+    }
+    getSizeY(){
+        return this.sizeY*this.TILESIZE*this.CHUNKWIDTHINTILES;
     }
     getScene(location /*point*/)
     {
@@ -136,6 +144,10 @@ CM.World = class World{
     {
         this.objects.push(object);
     }
+    addObjects(objects)
+    {
+       this.objects = this.objects.concat(objects);
+    }
     getNearestObject(position)
     {
       
@@ -145,11 +157,13 @@ CM.World = class World{
             var nearest = this.objects[0];
             var currDist = Number.MAX_VALUE;
             this.objects.forEach(_=> {
-                var d = CM.distance(_.getMidPoint(),position);
-                if(d < currDist)
-                {
-                    nearest = _;
-                    currDist = d;
+                if(_.interactable){
+                    var d = CM.distance(_.getMidPoint(),position);
+                    if(d < currDist)
+                    {
+                        nearest = _;
+                        currDist = d;
+                    }
                 }
             });
             return nearest;
