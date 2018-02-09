@@ -1,10 +1,13 @@
 
 CM = window.CM || {}
-CM.TILECREATOR = function (i,k,location,tileSize)
+CM.TILECREATOR = function (imagerepo)
 {
-    var c = (i+k) % 2 == 0 ? "#FF0000" : "#00FF00";
-    return new CM.Tile(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,c);
-
+    return function(i,k,location,tileSize)
+    {
+        var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
+        var image = imagerepo.getImage(c);
+        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image);
+    }
 }
 CM.Chunk = class Chunk {
     constructor(location/*point*/, widthInTiles, sizeOfTile, tileCreator){

@@ -41,6 +41,21 @@ CM.Tile = class Tile {
     }
 
 }
+
+CM.TileSprite = class TileSprite {
+    constructor(location,size,image)
+    {
+        this.location = location;
+        this.size = size;
+        this.image =  image;
+    }
+
+    draw(renderer)
+    {
+       renderer.drawImageZ(this.image, this.location.x,this.location.y,this.size,this.size,3,1);
+    }
+
+}
 CM.InputHandler = class InputHandler{
     constructor(){
 

@@ -21,10 +21,12 @@
 <script>
     window.addEventListener("load", function() {
     
-        var world = new CM.World(10,10);
+        
         var repo = new CM.ImageRepo();
+        var world = new CM.World(10,10, CM.TILECREATOR(repo));
         var cloudSource = new CM.CloudSource(world.getSizeX(), world.getSizeY(), function (startPosX,startPosY)
         {
+            var maxX = world.getSizeX();
             var startPos = new CM.Point(startPosX,startPosY);
             var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),2,1);
                 c.setTicker( 
@@ -34,7 +36,7 @@
                     return function (v){
                     v.move(-1,0);
                     if(v.position.x < 0){
-                       v.move(s.x,0);
+                       v.move(s.x+maxX,0);
                         console.log("reset");
                     } 
                     };
@@ -42,7 +44,7 @@
               return c;
         });
         setTimeout(function (){
-            world.addObjects(cloudSource.generateClouds(1,1));
+            world.addObjects(cloudSource.generateClouds(0.05,0.05));
             var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(110,110));
         engine.init();
         engine.run();

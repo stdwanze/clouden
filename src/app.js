@@ -92,7 +92,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(this.z != 3) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
-  //      v.position.move(this.position.x*3,this.position.y*3);
+ 
         this.vehicle = null;
         return v;
     }
@@ -209,20 +209,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3,0.5));
                 
                // this.tryMount();
-                var c = new CM.VehicleSprite(this.startPos, this.imagerepo.getImage("cloud"),2,1);
-                c.setTicker( 
-                    function (startPos)
-                {
-                    var s = startPos;
-                    return function (v){
-                    v.move(-1,0);
-                    if(v.position.x < 0){
-                       v.move(s.x,0);
-                        console.log("reset");
-                    } 
-                    };
-                }(this.startPos));
-                this.world.addObject(c);
+            
 
                 window.requestAnimFrame = (function(callback) {
                     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
