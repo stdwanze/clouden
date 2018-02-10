@@ -4,9 +4,19 @@ CM.TILECREATOR = function (imagerepo)
 {
     return function(i,k,location,tileSize)
     {
-        var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
+       
+        var c = "";
+        if(i< 2 && k < 2)
+         {
+            c = "tile_land_desert";
+           
+         }
+        else{
+             c = Math.random()*100 >50 ? "tile_water" :  "tile_land_desert";
+        } 
+       // var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
         var image = imagerepo.getImage(c);
-        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image);
+        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image, c=="tile_land_desert");
     }
 }
 CM.Chunk = class Chunk {
@@ -18,6 +28,21 @@ CM.Chunk = class Chunk {
         this.init(tileCreator);
 
 
+    }
+    getTile(location)
+    {
+        for(var i = 0 ; i < this.tiles.length; i++)
+        {
+            for(var k = 0; k < this.widthInTiles; k++){
+                var aabb = new CM.AABB(this.tiles[i][k].location,new CM.Point( this.tiles[i][k].size,this.tiles[i][k].size) );
+
+                if(aabb.contains(location)){
+                    return this.tiles[i][k];
+                }
+            }
+           
+        }
+        return null;
     }
     init(tileCreator){
 
@@ -71,10 +96,27 @@ CM.World = class World{
     getSizeY(){
         return this.sizeY*this.TILESIZE*this.CHUNKWIDTHINTILES;
     }
-    getScene(location /*point*/)
+
+    getChunk(location)
+    {
+       var chunkCoordinates = this.getChunkCoordinates(location);
+        var x = chunkCoordinates.x;
+        var y = chunkCoordinates.y;
+        return this.world[x][y];
+    }
+
+    getChunkCoordinates(location)
     {
         var x = Math.floor(location.x / (this.TILESIZE*this.CHUNKWIDTHINTILES));
         var y = Math.floor(location.y / (this.TILESIZE*this.CHUNKWIDTHINTILES));
+     
+        return new CM.Point(x,y);
+    }
+    getScene(location /*point*/)
+    {
+        var chunkCoordinates = this.getChunkCoordinates(location);
+        var x = chunkCoordinates.x;
+        var y = chunkCoordinates.y;
         
         if(x == this.lastX && y == this.lastY) return this.cachedHolder.tiles;
         else

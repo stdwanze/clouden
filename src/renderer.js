@@ -8,6 +8,15 @@ CM.Renderer = class Renderer extends Renderinterface{
         this.canvas = $("#"+canvas)[0];
         this.ctxt = this.canvas.getContext("2d");
     }
+
+    lighter(){
+        this.orgAlpha = this.ctxt.globalAlpha;
+        this.ctxt.globalAlpha = 0.5
+    }
+    restore(){
+        this.ctxt.globalAlpha = this.orgAlpha;
+        this.ctxt.restore();
+    }
     draw(element)
     {
         element.draw(this);

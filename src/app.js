@@ -2,14 +2,17 @@ CM = window.CM || {};
 
 CM.CloudPlayer = class Player extends CM.MoveableObject {
     constructor(position, image){
-      super(position, image.width,image.height,3);
+      super(position, image.width*0.3,image.height*0.3,3);
     
-      this.sprite = new CM.Sprite(image , position,3, true,0.3);
+      this.sprite = new CM.Sprite(image , position,3, false,0.3);
       this.right();
       
        this.vehicle = null;
     }
-    
+    setTileInfoRetrieve(retriever)
+    {
+        this.tileInfoRetriever = retriever;
+    }
     draw(renderer){
 
 
@@ -22,6 +25,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         else {
             if(this.sprite != null)
             {
+             // renderer.drawRectangle(this.position.x,this.position.y,this.sizeX, this.sizeY,"#0000FF");
               this.sprite.draw(renderer);
             }
             else{
@@ -62,8 +66,39 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             this.vehicle.z = this.z;
         }
     }
+    getBoundingPos(x,y)
+    {
+        if(x > 0) return this.getBoundingPosWhere("RIGHT");
+        if(y > 0) return this.getBoundingPosWhere("DOWN");
+        if(x < 0) return this.getBoundingPosWhere("LEFT");
+        if(y < 0) this.getBoundingPosWhere("UP");
+        return this.getBoundingPosWhere("");
+    }
+    getBoundingPosWhere(where)
+    {
+        var pos =  this.position.clone();
+        switch(where)
+        {
+            
+            case "RIGHT": {pos.x += this.sizeX; break;}
+            case "LEFT" : break;
+            case "UP" : break;
+            case "DOWN": { pos.y+=this.sizeY; break;}
+            default: 
+        }
+        return pos;
+    }
     move(x,y)
     {
+        if(this.tileInfoRetriever && !this.isMounted())
+        {
+            
+            var newPos = this.getBoundingPos(x,y); //this.position.clone();
+            newPos.move(x,y);
+            var tileInfo = this.tileInfoRetriever(newPos);
+            if(!tileInfo.isLand())
+            return;
+        }
         super.move(x,y);
         if(this.vehicle != null)
         {
@@ -89,6 +124,13 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         return false;
     }
     dismount(){
+        if(this.tileInfoRetriever)
+        {
+            if(!this.tileInfoRetriever(this.getBoundingPos(0,0)).isLand())
+            {
+                return null;
+            }
+        }
         if(this.z != 3) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
@@ -102,7 +144,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     isInRange(cloudobject)
     {
        var distance= CM.distance(this.getMidPoint(),cloudobject.getMidPoint());
-       if(distance < 30)
+       if(distance < 20)
        {
            return true;
        }
@@ -143,7 +185,12 @@ CM.CloudEngine=    class CloudEngine{
             this.world.getObjects().forEach(element =>
             {
                 element.tick();
+                if(this.player.z >= element.z+0.3)
+                {
+                    this.renderer.lighter()
+                }
                 this.renderer.draw(element);
+                this.renderer.restore();
             });
 
             this.renderer.draw(this.player);
@@ -205,6 +252,14 @@ CM.CloudEngine=    class CloudEngine{
         init(){
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("player"));
+                this.player.setTileInfoRetrieve((function (world) {
+                    return function (location){
+                    var c = world.getChunk(location);
+                    if(c) {
+                        return c.getTile(location);
+                    }
+                    return null;
+                }})(this.world));
                 this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3,0.5));
                 this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3,0.5));
                 

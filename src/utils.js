@@ -26,6 +26,9 @@ CM.Point = class Point{
         this.y += divy;
         return this;
     }
+    clone(){
+        return new CM.Point(this.x,this.y);
+    }
 }
 CM.Tile = class Tile {
     constructor(location,size,color)
@@ -43,13 +46,16 @@ CM.Tile = class Tile {
 }
 
 CM.TileSprite = class TileSprite {
-    constructor(location,size,image)
+    constructor(location,size,image, isLand)
     {
         this.location = location;
         this.size = size;
         this.image =  image;
+        this.land = isLand;
     }
-
+    isLand(){
+        return this.land;
+    }
     draw(renderer)
     {
        renderer.drawImageZ(this.image, this.location.x,this.location.y,this.size,this.size,3,1);
