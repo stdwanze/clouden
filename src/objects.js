@@ -69,7 +69,7 @@ CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
     setMountedState(val)
     {
         this.mountedState = val;
-      //  this.sprite.setStatic( val);
+        this.sprite.setStatic( val);
     }
     move(x,y)
     {
@@ -134,7 +134,8 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                     draw(renderer) {
                         if(this.static)
                         {
-                            renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3,this.scalingfactor);
+                      //      renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3,this.scalingfactor);
+                            renderer.drawImageZ(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY,3, this.scalingfactor);
                             
                         }
                         else{

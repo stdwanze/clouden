@@ -62,7 +62,7 @@ CM.Renderer = class Renderer extends Renderinterface{
     {
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
-        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom*scalingfactor, sizey*this.zoom*scalingfactor);
+        this.ctxt.drawImage(image,worldX,worldY,sizex*z*scalingfactor, sizey*z*scalingfactor);
     }
     drawImage(image,x1,y1,sizex,sizey, scalingfactor)
     {

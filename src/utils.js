@@ -58,7 +58,7 @@ CM.TileSprite = class TileSprite {
     }
     draw(renderer)
     {
-       renderer.drawImageZ(this.image, this.location.x,this.location.y,this.size,this.size,3,1);
+       renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
     }
 
 }
