@@ -27,7 +27,7 @@
         
         var repo = new CM.ImageRepo();
         repo.load().then(function (){
-            var world = new CM.World(10,10, CM.TILECREATOR(repo));
+            var world = new CM.World(10,10, CM.TILECREATOR(repo,100));
             var cloudSource = new CM.CloudSource(world.getSizeX(), world.getSizeY(),CM.CLOUDGEN(world, repo));
            
             world.addObjects(cloudSource.generateClouds(0.05,0.05));
