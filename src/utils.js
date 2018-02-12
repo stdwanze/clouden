@@ -1,18 +1,5 @@
 CM = window.CM || {};
 
-CM.distance= function (point1, point2)
-{
-  //  var x =  Math.abs(point1.x - point2.x);
-  //  var y = Math.abs(point1.y - point2.y);
-
-    var x = point2.x - point1.x;
-    var y = point2.y - point1.y;
-
-
-    var diff = Math.sqrt(x*x + y*y);
-
-    return diff;
-}
 
 CM.Point = class Point{
     constructor(x,y)
@@ -30,38 +17,29 @@ CM.Point = class Point{
         return new CM.Point(this.x,this.y);
     }
 }
-CM.Tile = class Tile {
-    constructor(location,size,color)
-    {
-        this.location = location;
-        this.color = color;
-        this.size = size;
-    }
 
-    draw(renderer)
+CM.AABB = class AABB{
+    
+    constructor(location, size) {
+        this.x = location.x;
+        this.y = location.y;
+    
+        this.width = size.x;
+        this.height = size.y;
+    
+    };
+    contains(location)
     {
-        renderer.drawRectangle(this.location.x,this.location.y,this.size,this.size,this.color);
+        if(this.x <= location.x && this.x+this.width > location.x &&
+                        this.y <= location.y && this.y+this.height > location.y)
+            { return true;}
+        else{
+            return false;
+        }
     }
-
 }
 
-CM.TileSprite = class TileSprite {
-    constructor(location,size,image, isLand)
-    {
-        this.location = location;
-        this.size = size;
-        this.image =  image;
-        this.land = isLand;
-    }
-    isLand(){
-        return this.land;
-    }
-    draw(renderer)
-    {
-       renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
-    }
 
-}
 CM.InputHandler = class InputHandler{
     constructor(){
 

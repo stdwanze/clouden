@@ -31,30 +31,6 @@ CM.MoveableObject = class Moveable extends CM.CloudObject{
 }
 
 
-CM.Vehicle = class Vehicle extends CM.MoveableObject{
-    constructor(location,sizex,sizey,z)
-    {
-      super(location,sizex,sizey,z);
-      this.mountedState = false;
-      this.interactable = true;
-    }
-    setMountedState(val)
-    {
-        this.mountedState = val;
-    }
-    draw(renderer)
-     {
-         var size = 20;
-        //  if(this.mountedState == true)
-        //  {
-        //     renderer.drawRectangleStatic(size*3,size*3,"#FF00FF");
-        //  }
-        //  else {
-         renderer.drawRectangle(this.position.x,this.position.y,20,20,"#FF00FF");
-        
-      
-     }
-}
 
 CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
     constructor(location,image,z,scalingfactor)
@@ -88,26 +64,6 @@ CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
      {
         this.ticker = func;
      }
-}
-CM.AABB = class AABB{
-    
-    constructor(location, size) {
-        this.x = location.x;
-        this.y = location.y;
-    
-        this.width = size.x;
-        this.height = size.y;
-    
-    };
-    contains(location)
-    {
-        if(this.x <= location.x && this.x+this.width > location.x &&
-                        this.y <= location.y && this.y+this.height > location.y)
-            { return true;}
-        else{
-            return false;
-        }
-    }
 }
                 
 

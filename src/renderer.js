@@ -1,9 +1,8 @@
 CM = window.CM || {};
 
-CM.Renderer = class Renderer extends Renderinterface{
+CM.Renderer = class Renderer {
     constructor(canvas)
     {
-        super();
         this.zoom = 1;
         this.canvas = $("#"+canvas)[0];
         this.ctxt = this.canvas.getContext("2d");

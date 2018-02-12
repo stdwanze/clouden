@@ -1,24 +1,28 @@
 
 CM = window.CM || {}
-CM.TILECREATOR = function (imagerepo)
-{
-    return function(i,k,location,tileSize)
+
+CM.TileSprite = class TileSprite {
+    constructor(location,size,image, isLand)
     {
-       
-        var c = "";
-        if(i< 2 && k < 2)
-         {
-            c = "tile_land_desert";
-           
-         }
-        else{
-             c = Math.random()*100 >50 ? "tile_water" :  "tile_land_desert";
-        } 
-       // var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
-        var image = imagerepo.getImage(c);
-        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image, c=="tile_land_desert");
+        this.location = location;
+     //   this.size = size;
+        this.image =  image;
+        this.land = isLand;
+        this.sprite = new CM.Sprite(image,location,3,false,1 );
+        this.size = this.sprite.sizeX;
+        //image, location,z, isStatic, scalingfactor
     }
+    isLand(){
+        return this.land;
+    }
+    draw(renderer)
+    {
+       this.sprite.draw(renderer);
+    // renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
+    }
+
 }
+
 CM.Chunk = class Chunk {
     constructor(location/*point*/, widthInTiles, sizeOfTile, tileCreator){
         this.locationbase = location;
