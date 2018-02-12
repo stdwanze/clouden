@@ -112,9 +112,8 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                         this.anispeed = 5;
                         this.frame = 0;
                     };
-                    tick(x, y) {
+                    tick() {
                         this.frame++;
-                        this.location = new CM.Point(x, y);
                         if (this.imageArray.length > 0) {
                             if (this.frame % this.anispeed === 0)
                                 this.anistep = (this.anistep + 1) % this.imageArray.length;

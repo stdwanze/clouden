@@ -41,6 +41,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.renderer.restore();
             });
 
+            this.player.tick();
             this.renderer.draw(this.player);
             var self = this;
             // register next
@@ -80,13 +81,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         handleMove(k,currentlyPressed)
         {
-            switch(""+k)
-            {
-                case "39" : this.player.right(); break;
-                case "38" : this.player.down(); break;
-                case "37" : this.player.left(); break;
-                case "40": this.player.top(); break;
-            }
+          
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
                 {

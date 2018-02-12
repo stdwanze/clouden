@@ -151,5 +151,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
        }
        else return false;
     }
+    tick(){
+      if(this.isMounted())  this.vehicle.tick();
+    }
     
 }
