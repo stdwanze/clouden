@@ -75,15 +75,49 @@ CM.BuildWorld = function (tilewidth){
     return tileArray;
 
 }
-
+CM.AnnotateWorld = function (tileArray, widthInTiles)
+{
+    
+    function get(manipulate,i,array)
+    {
+        var index = i+manipulate
+        if(index >= 0)
+        {
+            return array[index];
+        }
+        else return null;
+    }
+    function isDiff(curr,other)
+    {
+        if(curr != null && other !=null)
+        {
+            return curr !== other;
+        }
+        else return false;
+    }
+    var ret = [];
+    for(var i = 0; i < tileArray.length ; i++)
+    {
+        var tile = {
+            isLand : tileArray[i],
+            borderTop : isDiff(tileArray[i],get(-widthInTiles,i,tileArray)),
+            borderLeft : isDiff(tileArray[i],get(-1,i,tileArray)),
+            borderRight : isDiff(tileArray[i],get(1,i,tileArray)),
+            borderDown : isDiff(tileArray[i],get(widthInTiles,i,tileArray)),
+            decals : Math.random() > 0.3 &&  tileArray[i] ? true: false
+        };
+        ret.push(tile);
+    }
+    return ret;
+}
 CM.TILECREATOR = function (imagerepo,widthInTiles)
 {
     var array = CM.BuildWorld(widthInTiles);
-
+    array = CM.AnnotateWorld(array, widthInTiles);
 
     return function(i,k,location,tileSize)
     {
-        var type = array[k*widthInTiles+i];
+        var type = array[k*widthInTiles+i].isLand;
         if(i< 2 && k < 2)
          {
             c = "tile_land_desert";
@@ -94,7 +128,7 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
         } 
        // var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
         var image = imagerepo.getImage(c);
-        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image, c=="tile_land_desert");
+        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image, c=="tile_land_desert" );
     }
 }
 CM.CLOUDGEN = function (world,repo){
