@@ -71,10 +71,12 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
     
                    constructor(image, location,z, isStatic, scalingfactor) {
 
+                       
                         super(location,image.width,image.height,z);
                         //this.image = image;
                         this.static = isStatic;
                         this.scalingfactor = scalingfactor;
+                        this.animate = false;
                         this.init(image);
                     }
     
@@ -109,15 +111,26 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                             this.image = image;
                         }
     
-                        this.anispeed = 5;
+                        this.anispeed = 8;
                         this.frame = 0;
                     };
+                    toggleAnimation (val)
+                    {
+                        this.animate = val;
+                    }
                     tick() {
-                        this.frame++;
-                        if (this.imageArray.length > 0) {
-                            if (this.frame % this.anispeed === 0)
-                                this.anistep = (this.anistep + 1) % this.imageArray.length;
-                            this.image = this.imageArray[this.anistep];
+                        if(this.animate)
+                        {
+                            this.frame++;
+                            if (this.imageArray.length > 0) {
+                                if (this.frame % this.anispeed === 0)
+                                    this.anistep = (this.anistep + 1) % this.imageArray.length;
+                                this.image = this.imageArray[this.anistep];
+                            }
+                        }
+                        else
+                        {
+                            this.image = this.imageArray[0];
                         }
                     };
             };

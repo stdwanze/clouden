@@ -78,19 +78,29 @@ CM.InputHandler = class InputHandler{
     notifiy(keycode)
     {
         var currentlyPressed = this.calcCurrentlyPressed();
-        this.keyDownListeners.forEach(element => {
-            element(keycode,currentlyPressed);
-        });
-        if(this.inrange(event.keyCode,37,40)){
-            this.keyArrowListeners.forEach(element => {
+        
+        if(keycode == null)
+        {
+            this.keyUpListeners.forEach(element => {
                 element(keycode,currentlyPressed);
             });
-        } 
-        if(this.inrange(event.keyCode,65,90)){
-            this.keyLetterListeneres.forEach(element => {
+        }
+        else {
+            this.keyDownListeners.forEach(element => {
                 element(keycode,currentlyPressed);
             });
-        } 
+            
+            if(this.inrange(event.keyCode,37,40)){
+                this.keyArrowListeners.forEach(element => {
+                    element(keycode,currentlyPressed);
+                });
+            } 
+            if(this.inrange(event.keyCode,65,90)){
+                this.keyLetterListeneres.forEach(element => {
+                    element(keycode,currentlyPressed);
+                });
+            } 
+        }
     }
     inrange(key,lower,upper)
     {

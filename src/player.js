@@ -2,11 +2,12 @@ CM = window.CM || {};
 
 
 CM.CloudPlayer = class Player extends CM.MoveableObject {
-    constructor(position, image){
+    constructor(position, image, imageleft){
       super(position, image.width*0.3,image.height*0.3,3);
     
-      this.sprite = new CM.Sprite(image , position,3, false,0.3);
-     
+      this.spriteright = new CM.Sprite(image , position,3, false,0.3);
+      this.spriteleft = new CM.Sprite(imageleft , position,3, false,0.3);
+      this.sprite = this.spriteright;
       
        this.vehicle = null;
     }
@@ -80,9 +81,18 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
          else return true;
       
     }
+    toggleSprite(sprite)
+    {
+        this.stop();
+        this.sprite = sprite;
+    }
+    stop(){
+        this.sprite.toggleAnimation(false);
+    }
     move(x,y)
     {   
-        
+        if(x > 0) this.toggleSprite(this.spriteright);
+        if(x < 0) this.toggleSprite(this.spriteleft);
 
 
         if(this.tileInfoRetriever && !this.isMounted())
@@ -90,6 +100,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             if(!this.checkMovement(x,0) || !this.checkMovement(0,y)) return;
            
         }
+        this.sprite.toggleAnimation(true);
         super.move(x,y);
         if(this.vehicle != null)
         {
@@ -97,7 +108,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         }
         if(this.sprite != null)
         {
-            this.sprite.move(x,y);
+            this.spriteright.move(x,y);
+            this.spriteleft.move(x,y);
         }
     }
     mount(vehicle)
@@ -143,6 +155,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     tick(){
       if(this.isMounted())  this.vehicle.tick();
+        else this.sprite.tick();
     }
     
 }

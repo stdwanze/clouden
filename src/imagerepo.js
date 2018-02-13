@@ -4,25 +4,16 @@ CM.ImageRepo = class Repo{
 
 		constructor() {
 				this.loadedRegister =[];
-					this.register("img/player.png", "player");
+		//			this.register("img/player.png", "player");
 					this.register("img/blimp.png", "blimp");
 					this.register("img/cloud.png", "cloud");
 					this.register("img/tile_water.png", "tile_water");
 					this.register("img/tile_land_desert.png", "tile_land_desert");
 					
 					
-				// //	this.register("img/player_right.png", "playerRight");
-				// 	this.register("img/coinBronze.png", "bronzecoin");
-				// 	this.register("img/coinSilver.png", "silvercoin");
-				// 	this.register("img/coinGold.png", "goldcoin");
-				// 	this.register("img/star.png", "star");
-				// 	this.register("img/grassTop.png", "grassTop");
-				// 	this.register("img/grassCenter.png", "grassCenter");
-				// 	this.register("img/grassEnd.png", "grassEnd");
-				// 	this.register("img/left_arrow.png", "hudleft");
-				// 	this.register("img/right_arrow.png", "hudright");
-				// 	this.register("img/restart.png","restart");
-				// 	this.registerAnimation("img/player_right",4,"png","playerRight");
+			
+				  this.registerAnimation("img/player",4,"png","playerAni");
+				  this.registerAnimation("img/playerleft",4,"png","playerAniLeft");
 				// 	this.registerAnimation("img/player_left",4,"png","playerLeft");
 		}
 		load() {
@@ -87,11 +78,22 @@ CM.ImageRepo = class Repo{
 		registerAnimation(pathbase,count,type, attrname) {
 						this[attrname] = [];
 						
-						for(var i = 0; i < count; i++)
+						for(var i = 1; i <= count; i++)
 						{
 							var image = new Image();
 							image.src = pathbase+i+"."+type;
 							this[attrname].push(image);
+
+							this[attrname][i-1].onload = (function (a,p,loadedRegister, holder, k)
+							{
+								return function (){
+								   console.log("load img "+a + " from path "+p);
+								   loadedRegister[a] = true;
+								   holder.width = holder[k].width;
+								   holder.height = holder[k].height;
+								};
+							   
+							}(attrname+i,image.src,this.loadedRegister, this[attrname] ,i-1));
 						}
 					
 					}

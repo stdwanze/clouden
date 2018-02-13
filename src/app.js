@@ -92,9 +92,16 @@ CM.CloudEngine=    class CloudEngine{
                 }
             });
         }
+        handleStop(k, currentlyPressed)
+        {
+            if(currentlyPressed.filter(_ => _ == true).length == 0)
+            {
+                this.player.stop();
+            }
+        }
         init(){
 
-                this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("player"));
+                this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3,0.5));
                 this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3,0.5));
@@ -108,7 +115,7 @@ CM.CloudEngine=    class CloudEngine{
                 })();
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
                 this.inputHandler.on("arrowKeys",this.handleMove.bind(this));
-                
+                this.inputHandler.on("keyup", this.handleStop.bind(this));
 
                 
 
