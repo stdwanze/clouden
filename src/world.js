@@ -81,8 +81,8 @@ CM.World = class World{
         else{
             this.tileCreator = CM.TILECREATOR;
         }
-        this.TILESIZE = 100;
-        this.CHUNKWIDTHINTILES = 10;
+        this.TILESIZE = 32;
+        this.CHUNKWIDTHINTILES = 30;
 
         this.world = [];
         this.objects =[];

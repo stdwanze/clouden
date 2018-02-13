@@ -7,8 +7,8 @@ CM.ImageRepo = class Repo{
 		//			this.register("img/player.png", "player");
 					this.register("img/blimp.png", "blimp");
 					this.register("img/cloud.png", "cloud");
-					this.register("img/tile_water.png", "tile_water");
-					this.register("img/tile_land_desert.png", "tile_land_desert");
+					this.register("img/tile_water32.png", "tile_water");
+					this.register("img/tile_land_desert32.png", "tile_land_desert");
 					
 					
 			

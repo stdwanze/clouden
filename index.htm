@@ -27,11 +27,11 @@
         
         var repo = new CM.ImageRepo();
         repo.load().then(function (){
-            var world = new CM.World(10,10, CM.TILECREATOR(repo,100));
+            var world = new CM.World(10,10, CM.TILECREATOR(repo,300));
             var cloudSource = new CM.CloudSource(world.getSizeX(), world.getSizeY(),CM.CLOUDGEN(world, repo));
            
             world.addObjects(cloudSource.generateClouds(0.05,0.05));
-            var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(100,100));
+            var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(10,10));
             engine.init();
             engine.run();
            

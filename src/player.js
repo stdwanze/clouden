@@ -17,23 +17,13 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     draw(renderer){
 
-
-        
-
         if(this.vehicle != null)
         {
             // draw nothing?
         }
         else {
-            if(this.sprite != null)
-            {
-             // renderer.drawRectangle(this.position.x,this.position.y,this.sizeX, this.sizeY,"#0000FF");
+            
               this.sprite.draw(renderer);
-            }
-            else{
-                renderer.drawRectangleStatic(20,20,"#0000FF");
-                renderer.drawTriangleStatic(this.p1,this.p2,this.p3,"#0000FF");
-            }
         }
     }
   
