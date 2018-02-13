@@ -10,12 +10,16 @@ CM.TileSprite = class TileSprite {
         this.info = tileInfo;
         this.sprite = new CM.Sprite(image,location,3,false,1 );
         this.size = this.sprite.sizeX;
+        this.border = [];
         //image, location,z, isStatic, scalingfactor
     }
     isLand(){
         return this.info.isLand;
     }
-
+    addBorder(image, relOffSetCoords)
+    {
+        this.border.push( {img: image, offSet: relOffSetCoords});
+    }
     draw(renderer)
     {
        this.sprite.draw(renderer);
@@ -23,12 +27,17 @@ CM.TileSprite = class TileSprite {
         {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,"#00FF00");}
     // renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
             if(this.isLand()){
-            if(this.info.borderTop) renderer.drawRectangle(this.location.x+10, this.location.y, 2,2,"#FF0000");
-            if(this.info.borderDown) renderer.drawRectangle(this.location.x+10, this.location.y+this.size-2, 2,2,"#0000FF");
-            if(this.info.borderLeft) renderer.drawRectangle(this.location.x, this.location.y+10, 2,2,"#0000FF");
-            if(this.info.borderRight) {
-                renderer.drawRectangle(this.location.x+this.size-2, this.location.y+10, 2,2,"#FF0000");
-        }}
+        //     if(this.info.borderTop) renderer.drawRectangle(this.location.x+10, this.location.y, 2,2,"#FF0000");
+        //     if(this.info.borderDown) renderer.drawRectangle(this.location.x+10, this.location.y+this.size-2, 2,2,"#0000FF");
+        //     if(this.info.borderLeft) renderer.drawRectangle(this.location.x, this.location.y+10, 2,2,"#0000FF");
+        //     if(this.info.borderRight) {
+        //         renderer.drawRectangle(this.location.x+this.size-2, this.location.y+10, 2,2,"#FF0000");
+        // }
+                this.border.forEach(function (item ){
+                    renderer.drawImage(item.img, this.location.x+item.offSet.x,this.location.y+item.offSet.y,item.img.width,item.img.height,1);
+    
+                }.bind(this));
+            }
     }
 
 }

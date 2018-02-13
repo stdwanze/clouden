@@ -118,18 +118,29 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
     return function(i,k,location,tileSize)
     {
         
-        var type = array[k*widthInTiles+i].isLand;
+        var info = array[k*widthInTiles+i];
         if(i< 2 && k < 2)
          {
             c = "tile_land_desert";
-            array[k*widthInTiles+i].isLand = true;
+            info.isLand = true;
          }
         else{
-            c = !type ? "tile_water" :  "tile_land_desert";
+            c = !info.isLand ? "tile_water" :  "tile_land_desert";
         } 
        // var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
         var image = imagerepo.getImage(c);
-        return new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image,array[k*widthInTiles+i]);
+        var ts =  new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image,info);
+   
+        if(info.isLand)
+        {
+            if(info.borderTop) ts.addBorder(imagerepo.getImage("border_land_water_top"), new CM.Point(0,-2));
+            if(info.borderDown) ts.addBorder(imagerepo.getImage("border_land_water_down"), new CM.Point(0,24));
+            if(info.borderLeft) ts.addBorder(imagerepo.getImage("border_land_water_left"), new CM.Point(0,0));
+            if(info.borderRight) ts.addBorder(imagerepo.getImage("border_land_water_right"), new CM.Point(26,0));
+            
+        }
+
+        return ts;
     }
 }
 CM.CLOUDGEN = function (world,repo){

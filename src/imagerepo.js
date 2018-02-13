@@ -9,7 +9,11 @@ CM.ImageRepo = class Repo{
 					this.register("img/cloud.png", "cloud");
 					this.register("img/tile_water32.png", "tile_water");
 					this.register("img/tile_land_desert32.png", "tile_land_desert");
-					
+					this.register("img/water_border_top.png", "border_land_water_top");
+					this.register("img/water_border_down.png", "border_land_water_down");
+					this.register("img/water_border_left.png", "border_land_water_left");
+					this.register("img/water_border_right.png", "border_land_water_right");
+				
 					
 			
 				  this.registerAnimation("img/player",4,"png","playerAni");
@@ -46,7 +50,7 @@ CM.ImageRepo = class Repo{
 							setTimeout( function () {check(resolve,reject);}, 1000);
 
 						} 
-						else { 
+						else {
 							resolve();
 						}
 					}
