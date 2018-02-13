@@ -123,6 +123,7 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
          {
             c = "tile_land_desert";
             info.isLand = true;
+
          }
         else{
             c = !info.isLand ? "tile_water" :  "tile_land_desert";
@@ -151,17 +152,17 @@ CM.CLOUDGEN = function (world,repo){
             var startPos = new CM.Point(startPosX,startPosY);
             var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),2,1);
                 c.setTicker( 
-                    function (startPos)
+                    function (startPos,speed)
                 {
                     var s = startPos;
                     return function (v){
-                    v.move(-1,0);
+                    v.move(-1*speed,0);
                     if(v.position.x < -500){
                     v.move(s.x+maxX,0);
                         console.log("reset");
                     } 
                     };
-                }(startPos));
+                }(startPos, Math.random()*5));
             return c;
         }
 }
