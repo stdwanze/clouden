@@ -150,7 +150,7 @@ CM.CLOUDGEN = function (world,repo){
         {
             var maxX = world.getSizeX();
             var startPos = new CM.Point(startPosX,startPosY);
-            var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),2,1);
+            var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),CM.SkyLevel,1);
                 c.setTicker( 
                     function (startPos,speed)
                 {

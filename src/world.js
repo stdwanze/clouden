@@ -8,7 +8,7 @@ CM.TileSprite = class TileSprite {
      //   this.size = size;
         this.image =  image;
         this.info = tileInfo;
-        this.sprite = new CM.Sprite(image,location,3,false,1 );
+        this.sprite = new CM.Sprite(image,location,CM.GroundLevel,false,1 );
         this.size = this.sprite.sizeX;
         this.border = [];
         //image, location,z, isStatic, scalingfactor

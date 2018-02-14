@@ -3,10 +3,10 @@ CM = window.CM || {};
 
 CM.CloudPlayer = class Player extends CM.MoveableObject {
     constructor(position, image, imageleft){
-      super(position, image.width*0.3,image.height*0.3,3);
+      super(position, image.width*(1/CM.GroundLevel),image.height*(1/CM.GroundLevel),CM.GroundLevel);
     
-      this.spriteright = new CM.Sprite(image , position,3, false,0.3);
-      this.spriteleft = new CM.Sprite(imageleft , position,3, false,0.3);
+      this.spriteright = new CM.Sprite(image , position,CM.GroundLevel, false,(1/CM.GroundLevel));
+      this.spriteleft = new CM.Sprite(imageleft , position,CM.GroundLevel, false,(1/CM.GroundLevel));
       this.sprite = this.spriteright;
       
        this.vehicle = null;
@@ -29,13 +29,13 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
   
     descend(val){
         this.z += val;
-        if( this.z >= 3)  this.z = 3;
+        if( this.z >= CM.GroundLevel)  this.z = CM.GroundLevel;
         if(this.isMounted()) this.vehicle.z = this.z;
     }
     ascend(val){
         if(this.isMounted()){
             this.z -= val;
-            if( this.z <= 0.5)  this.z = 0.5;
+            if( this.z <= CM.Max)  this.z = CM.Max;
             this.vehicle.z = this.z;
         }
     }
@@ -104,7 +104,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     mount(vehicle)
     {
-        if(this.z != 3) return false;
+        if(this.z != CM.GroundLevel) return false;
         if(vehicle != null)
         {
             if(this.isInRange(vehicle)){
@@ -124,7 +124,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
                 return null;
             }
         }
-        if(this.z != 3) return null;
+        if(this.z != CM.GroundLevel) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
  

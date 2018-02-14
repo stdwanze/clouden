@@ -1,4 +1,4 @@
-
+CM = window.CM || {};
 
 
 CM.CloudEngine=    class CloudEngine{
@@ -103,8 +103,8 @@ CM.CloudEngine=    class CloudEngine{
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
-                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),3,0.5));
-                this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),3,0.5));
+                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
+                //this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
             
 
                 window.requestAnimFrame = (function(callback) {
