@@ -134,7 +134,7 @@ CM.World = class World{
        var chunkCoordinates = this.getChunkCoordinates(location);
         var x = chunkCoordinates.x;
         var y = chunkCoordinates.y;
-        return this.world[x][y];
+        return this.world[y][x];
     }
 
     getChunkCoordinates(location)
