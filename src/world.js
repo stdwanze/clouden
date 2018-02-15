@@ -11,6 +11,7 @@ CM.TileSprite = class TileSprite {
         this.sprite = new CM.Sprite(image,location,CM.GroundLevel,false,1 );
         this.size = this.sprite.sizeX;
         this.border = [];
+        this.decals = [];
         //image, location,z, isStatic, scalingfactor
     }
     isLand(){
@@ -20,11 +21,15 @@ CM.TileSprite = class TileSprite {
     {
         this.border.push( {img: image, offSet: relOffSetCoords});
     }
+    addDecals(image, realOffSetCoords)
+    {
+        this.decals.push( { img: image, offSet: realOffSetCoords})
+    }
     draw(renderer)
     {
        this.sprite.draw(renderer);
-       if(this.info.decals)
-        {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,"#00FF00");}
+    //    if(this.info.decals)
+    //     {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,"#00FF00");}
     // renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
             if(this.isLand()){
         //     if(this.info.borderTop) renderer.drawRectangle(this.location.x+10, this.location.y, 2,2,"#FF0000");
@@ -37,6 +42,12 @@ CM.TileSprite = class TileSprite {
                     renderer.drawImage(item.img, this.location.x+item.offSet.x,this.location.y+item.offSet.y,item.img.width,item.img.height,1);
     
                 }.bind(this));
+
+                this.decals.forEach(function (item ){
+                    renderer.drawImage(item.img, this.location.x+item.offSet.x,this.location.y+item.offSet.y,item.img.width,item.img.height,1);
+    
+                }.bind(this));
+
             }
     }
 

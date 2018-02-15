@@ -104,7 +104,7 @@ CM.AnnotateWorld = function (tileArray, widthInTiles)
             isDiff(tileArray[i],get(-1,i,tileArray)),
             isDiff(tileArray[i],get(1,i,tileArray)),
             isDiff(tileArray[i],get(widthInTiles,i,tileArray)),
-            Math.random() > 0.3 &&  tileArray[i] ? true: false
+            Math.random() > 0.8 &&  tileArray[i] ? true: false
         );
         ret.push(tile);
     }
@@ -139,7 +139,9 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
             if(info.borderDown) ts.addBorder(imagerepo.getImage("border_land_water_down"), new CM.Point(0,24));
             if(info.borderLeft) ts.addBorder(imagerepo.getImage("border_land_water_left"), new CM.Point(0,0));
             if(info.borderRight) ts.addBorder(imagerepo.getImage("border_land_water_right"), new CM.Point(26,0));
-            
+
+            var num = Math.random() >0.5? "1": "2";
+            if(info.decals) ts.addDecals(imagerepo.getImage("decal_land_vegetation_"+num), new CM.Point(2+Math.floor(Math.random()*10),2+Math.floor(Math.random()*10)));
         }
 
         return ts;

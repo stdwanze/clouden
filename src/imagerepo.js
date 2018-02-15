@@ -13,6 +13,10 @@ CM.ImageRepo = class Repo{
 					this.register("img/water_border_down.png", "border_land_water_down");
 					this.register("img/water_border_left.png", "border_land_water_left");
 					this.register("img/water_border_right.png", "border_land_water_right");
+			
+					this.register("img/vegetation-1.png", "decal_land_vegetation_1");
+					this.register("img/vegetation-2.png", "decal_land_vegetation_2");
+					
 					this.register("img/ammo-osd.png", "ammo-osd");
 					this.register("img/health-osd.png", "health-osd");
 					this.register("img/coins-osd.png", "coins-osd");

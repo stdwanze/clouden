@@ -81,7 +81,10 @@ CM.CloudEngine=    class CloudEngine{
             {
                 case "65" : this.player.ascend(0.01); break;
                 case "83" : this.player.descend(0.01); break;
-                case "66" : this.player.isMounted() ? this.player.dismount() : this.tryMount();
+                case "66" : {
+                    this.player.isMounted() ? this.player.dismount() : this.tryMount();
+                    break;
+                }
                 case "67" : this.player.fire(); break;
 
             }
