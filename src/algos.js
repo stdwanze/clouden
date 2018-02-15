@@ -123,8 +123,9 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
          {
             c = "tile_land_desert";
             info.isLand = true;
-
-         }
+            if(i == 1)info.borderRight = true;
+            if(k == 1)info.borderDown = true;
+        }
         else{
             c = !info.isLand ? "tile_water" :  "tile_land_desert";
         } 

@@ -35,10 +35,10 @@ CM.Renderer = class Renderer {
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
         this.ctxt.fillRect(worldX,worldY,sizex*this.zoom,sizey*this.zoom);
     }
-    drawRectangleStatic(sizex,sizey,color)
+    drawRectangleStatic(x,y,sizex,sizey,color)
     {
         this.ctxt.fillStyle = color;
-        this.ctxt.fillRect(this.canvas.width/2-sizex/2,this.canvas.height/2-sizey/2,sizex,sizey);
+        this.ctxt.fillRect(x,y,sizex,sizey);
    
     }
     drawTriangleStatic(p1,p2,p3,color){
@@ -53,9 +53,9 @@ CM.Renderer = class Renderer {
         this.ctxt.fillStyle = color;
         this.ctxt.fill();
     }
-    drawImageStatic(image,sizex,sizey,scalingfactor)
+    drawImageStatic(image,x,y,sizex,sizey,scalingfactor)
     {
-        this.ctxt.drawImage(image,this.canvas.width/2-sizex/2,this.canvas.height/2-sizey/2,sizex*scalingfactor, sizey*scalingfactor);
+        this.ctxt.drawImage(image,x,y,sizex*scalingfactor, sizey*scalingfactor);
     }
     drawImageZ(image,x1,y1,sizex,sizey,z,scalingfactor)
     {
@@ -81,6 +81,9 @@ CM.Renderer = class Renderer {
     translate(coord,base)
     {
             return (coord+base);
+    }
+    getScreenHeight(){
+        return this.canvas.height;
     }
     clear()
     {

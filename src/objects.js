@@ -65,7 +65,18 @@ CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
         this.ticker = func;
      }
 }
-                
+CM.Blimp = class Blimp  extends CM.VehicleSprite{
+    constructor(location,image)
+    {
+        super(location,image,CM.GroundLevel,0.5);
+        this.scores = new CM.ScoreSet();
+        this.scores.add(new CM.Fuel(30));
+        this.scores.add(new CM.Ammo(30));
+        this.scores.add(new CM.Health(30));
+        
+        
+    }
+}                
 
 CM.Sprite = class Sprite extends CM.MoveableObject{
     

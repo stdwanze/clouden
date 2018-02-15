@@ -10,12 +10,23 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
       this.sprite = this.spriteright;
       
        this.vehicle = null;
+       this.scores = new CM.ScoreSet();
+       this.scores.add(new CM.Health(10));
+       this.scores.add(new CM.Ammo(10));
+       this.scores.add(new CM.Coins());
+    }
+    getScores(){
+        return this.scores;
     }
     setTileInfoRetrieve(retriever)
     {
         this.tileInfoRetriever = retriever;
     }
-    draw(renderer){
+    fire()
+    {
+        this.scores.get("AMMO").reduce();
+    }   
+ draw(renderer){
 
         if(this.vehicle != null)
         {

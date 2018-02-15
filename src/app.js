@@ -12,6 +12,7 @@ CM.CloudEngine=    class CloudEngine{
             this.player = null ;
             this.keys = {};
             this.speed = 3;
+            this.osd = new CM.OSD(this.renderer,this.imagerepo);
            
         }
 
@@ -43,6 +44,11 @@ CM.CloudEngine=    class CloudEngine{
 
             this.player.tick();
             this.renderer.draw(this.player);
+            
+            var playerScores = this.player.getScores().getAll();
+            
+            this.osd.displayScores( playerScores,"BOTTOM");
+
             var self = this;
             // register next
             //if (this.run && this.stillrun()) {
@@ -76,6 +82,7 @@ CM.CloudEngine=    class CloudEngine{
                 case "65" : this.player.ascend(0.01); break;
                 case "83" : this.player.descend(0.01); break;
                 case "66" : this.player.isMounted() ? this.player.dismount() : this.tryMount();
+                case "67" : this.player.fire(); break;
 
             }
         }
@@ -103,7 +110,7 @@ CM.CloudEngine=    class CloudEngine{
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
-                this.world.addObject( new CM.VehicleSprite(this.startPos,this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
+                this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
                 //this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
             
 
@@ -117,7 +124,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.inputHandler.on("arrowKeys",this.handleMove.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
 
-                
+
 
         }
     }
