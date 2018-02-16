@@ -23,14 +23,22 @@ CM.CloudEngine=    class CloudEngine{
         }
         tickndraw(){
 
+            // update renderer
             this.renderer.setZoom(this.player.z);
             this.renderer.clear(); 
-            
             this.renderer.updatePos(this.player.position);
+        
+
+            // interacte player with world
+            this.tryCollect();
+
+            // draw world
             this.world.getScene(this.player.position).forEach(element => {
                 this.renderer.draw(element);
             });
 
+
+            // draw movableobjects
             this.world.getObjects().forEach(element =>
             {
                 element.tick();
@@ -42,9 +50,12 @@ CM.CloudEngine=    class CloudEngine{
                 this.renderer.restore();
             });
 
+            //draw Player
             this.player.tick();
             this.renderer.draw(this.player);
             
+            
+
             var playerScores = this.player.getScores().getAll();
             
             this.osd.displayScores( playerScores,"BOTTOM");
@@ -70,10 +81,16 @@ CM.CloudEngine=    class CloudEngine{
             this.player.move(-1*this.speed,0);
         }
         tryMount(){
-            var object = this.world.getNearestObject(this.player.getMidPoint());
+            var object = this.world.getNearestObject(this.player.getMidPoint(),"interactable");
             var mounted = this.player.mount(object);
           
 
+        }
+        tryCollect(){
+            var obj =this.world.getNearestObject(this.player.position,"collectable");
+            if(obj == null) return;
+            var collected = this.player.collect(obj);
+            if(collected) this.world.removeObject(obj);
         }
         handleInteractions(k){
 
@@ -114,6 +131,8 @@ CM.CloudEngine=    class CloudEngine{
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
+                this.world.addObject( new CM.Coin(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),10));
+                
                 //this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
             
 

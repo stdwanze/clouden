@@ -22,12 +22,14 @@ CM.MoveableObject = class Moveable extends CM.CloudObject{
     constructor(location,sizex,sizey,z)
     {
        super(location,sizex,sizey,z);
+       
     }
     move(x,y)
     {
         this.position.move(x,y);
        
     }
+  
 }
 
 
@@ -55,7 +57,6 @@ CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
     draw(renderer)
      {
         this.sprite.draw(renderer);
-      
      }
      tick(){
          if(this.ticker) this.ticker(this)
@@ -76,7 +77,8 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
         
         
     }
-}                
+}  
+
 
 CM.Sprite = class Sprite extends CM.MoveableObject{
     
@@ -88,6 +90,7 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                         this.static = isStatic;
                         this.scalingfactor = scalingfactor;
                         this.animate = false;
+                        this.image = null;
                         this.init(image);
                     }
     
@@ -130,18 +133,44 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                         this.animate = val;
                     }
                     tick() {
-                        if(this.animate)
+                        if(this.imageArray.length > 0)
                         {
-                            this.frame++;
-                            if (this.imageArray.length > 0) {
-                                if (this.frame % this.anispeed === 0)
-                                    this.anistep = (this.anistep + 1) % this.imageArray.length;
-                                this.image = this.imageArray[this.anistep];
+                            if(this.animate)
+                            {
+                                this.frame++;
+                                if (this.imageArray.length > 0) {
+                                    if (this.frame % this.anispeed === 0)
+                                        this.anistep = (this.anistep + 1) % this.imageArray.length;
+                                    this.image = this.imageArray[this.anistep];
+                                }
                             }
-                        }
-                        else
-                        {
-                            this.image = this.imageArray[0];
-                        }
-                    };
-            };
+                            else
+                            {
+                                this.image = this.imageArray[0];
+                            }
+                       }
+                    }
+};
+
+CM.Coin = class Coin extends CM.Sprite
+{
+    constructor(location,image,pvalue)
+    {
+       super(image,location,CM.GroundLevel,false,0.3);
+       this.pointvalue = pvalue;
+       this.collectable = true;
+      
+    }
+    getPointValue(){
+        return this.pointvalue;
+    }
+    draw(renderer)
+    {
+        super.draw(renderer);
+    }
+    tick(){
+        super.tick();
+    }
+   
+}
+

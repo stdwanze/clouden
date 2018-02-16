@@ -232,20 +232,25 @@ CM.World = class World{
     {
         this.objects.push(object);
     }
+    removeObject(object)
+    {
+        var index = this.objects.indexOf(object);
+        if(index > -1) this.objects.splice(index,1);
+    }
     addObjects(objects)
     {
        this.objects = this.objects.concat(objects);
     }
-    getNearestObject(position)
+    getNearestObject(position, type)
     {
       
 
         if(this.objects.length > 0)
         {
-            var nearest = this.objects[0];
+            var nearest = null; //this.objects[0];
             var currDist = Number.MAX_VALUE;
             this.objects.forEach(_=> {
-                if(_.interactable){
+                if(_[type]){
                     var d = CM.distance(_.getMidPoint(),position);
                     if(d < currDist)
                     {

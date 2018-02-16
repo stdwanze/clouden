@@ -117,7 +117,7 @@ CM.Health = class Health extends CM.Score
  {
     constructor()
      {
-        super(0,Number.MAX_VALUE,1,"COINS",0);
+        super(0,200,1,"COINS",0);
      }
  }
  

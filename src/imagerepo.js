@@ -16,6 +16,7 @@ CM.ImageRepo = class Repo{
 			
 					this.register("img/vegetation-1.png", "decal_land_vegetation_1");
 					this.register("img/vegetation-2.png", "decal_land_vegetation_2");
+					this.register("img/coin-10.png", "coin_10");
 					
 					this.register("img/ammo-osd.png", "ammo-osd");
 					this.register("img/health-osd.png", "health-osd");

@@ -154,6 +154,18 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
        }
        else return false;
     }
+    collect(coin)
+    {
+        if(coin != null)
+        {
+            if(this.isInRange(coin))
+            {
+                this.scores.get("COINS").up(coin.getPointValue());
+                return true;
+            }
+        }
+        return false;
+    }
     tick(){
       if(this.isMounted())  this.vehicle.tick();
         else this.sprite.tick();
