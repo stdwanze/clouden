@@ -34,50 +34,7 @@ CM.MoveableObject = class Moveable extends CM.CloudObject{
 
 
 
-CM.VehicleSprite = class VehicleSprite extends CM.MoveableObject{
-    constructor(location,image,z,scalingfactor)
-    {
-        console.log("init sprite "+image.src);
-      super(location,image.width,image.height,z);
-      this.mountedState = false;
-      this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
-      this.interactable = true;
-    
-    }
-    setMountedState(val)
-    {
-        this.mountedState = val;
-        this.sprite.setStatic( val);
-    }
-    move(x,y)
-    {
-        super.move(x,y);
-        this.sprite.move(x,y);
-    }
-    draw(renderer)
-     {
-        this.sprite.draw(renderer);
-     }
-     tick(){
-         if(this.ticker) this.ticker(this)
-     }
-     setTicker(func)
-     {
-        this.ticker = func;
-     }
-}
-CM.Blimp = class Blimp  extends CM.VehicleSprite{
-    constructor(location,image)
-    {
-        super(location,image,CM.GroundLevel,0.5);
-        this.scores = new CM.ScoreSet();
-        this.scores.add(new CM.Fuel(30));
-        this.scores.add(new CM.Ammo(30));
-        this.scores.add(new CM.Health(30));
-        
-        
-    }
-}  
+
 
 
 CM.Sprite = class Sprite extends CM.MoveableObject{
@@ -176,4 +133,48 @@ CM.Coin = class Coin extends CM.Sprite
     }
    
 }
+CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
+    constructor(location,image,z,scalingfactor)
+    {
+        console.log("init sprite "+image.src);
+      super(image, location,z,false,scalingfactor);
+      this.mountedState = false;
+   //   this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
+      this.interactable = true;
+    
+    }
+    setMountedState(val)
+    {
+        this.mountedState = val;
+        this.setStatic( val);
+    }
+    move(x,y)
+    {
+        super.move(x,y);
+      
+    }
+    draw(renderer)
+     {
+        super.draw(renderer);
+     }
+     tick(){
+         if(this.ticker) this.ticker(this)
+     }
+     setTicker(func)
+     {
+        this.ticker = func;
+     }
+}
+CM.Blimp = class Blimp  extends CM.VehicleSprite{
+    constructor(location,image)
+    {
+        super(location,image,CM.GroundLevel,0.5);
+        this.scores = new CM.ScoreSet();
+        this.scores.add(new CM.Fuel(30));
+        this.scores.add(new CM.Ammo(30));
+        this.scores.add(new CM.Health(30));
+        
+        
+    }
+}  
 
