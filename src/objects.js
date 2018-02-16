@@ -85,7 +85,7 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                    constructor(image, location,z, isStatic, scalingfactor) {
 
                        
-                        super(location,image.width,image.height,z);
+                        super(location,image.width*scalingfactor,image.height*scalingfactor,z);
                         //this.image = image;
                         this.static = isStatic;
                         this.scalingfactor = scalingfactor;
@@ -106,12 +106,13 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                     draw(renderer) {
                         if(this.static)
                         {
-                      //      renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3,this.scalingfactor);
-                            renderer.drawImageZ(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY,3, this.scalingfactor);
+                        //   renderer.drawImageStatic(this.getImage(),  this.sizeX*3,this.sizeY*3,this.scalingfactor);
+                            renderer.drawImageZ(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY,3,1/* this.scalingfactor*/);
                             
                         }
                         else{
-                         renderer.drawImage(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY, this.scalingfactor);
+                          
+                            renderer.drawImage(this.getImage(), this.position.x,this.position.y, this.sizeX,this.sizeY, 1 /*this.scalingfactor*/);
                         }
                     
                     };
@@ -166,6 +167,8 @@ CM.Coin = class Coin extends CM.Sprite
     }
     draw(renderer)
     {
+    //    renderer.drawRectangle(this.position.x,this.position.y,this.sizeX,this.sizeY,"#00FF00")
+     
         super.draw(renderer);
     }
     tick(){

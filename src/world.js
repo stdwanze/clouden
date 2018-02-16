@@ -133,6 +133,7 @@ CM.World = class World{
 
         this.init(sizeX,sizeY,this.CHUNKWIDTHINTILES , this.TILESIZE);
     }
+
     getSizeX(){
         return this.sizeX*this.TILESIZE*this.CHUNKWIDTHINTILES;
     }
@@ -227,6 +228,16 @@ CM.World = class World{
             if( a.z == b.z) return 0;
             else return 1;
         });;
+    }
+    applyForTile(func)
+    {
+      this.world.forEach(function (row){
+          row.forEach(function (chunk){
+              chunk.getTiles().forEach(function (tile){
+                  func(tile);
+              })
+          })
+      })  
     }
     addObject(object)
     {

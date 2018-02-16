@@ -33,7 +33,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             // draw nothing?
         }
         else {
-            
+            //renderer.drawRectangle(this.position.x,this.position.y,this.sizeX,this.sizeY,"#00FF00")
               this.sprite.draw(renderer);
         }
     }
@@ -148,7 +148,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     isInRange(cloudobject)
     {
        var distance= CM.distance(this.getMidPoint(),cloudobject.getMidPoint());
-       if(distance < 20)
+       if(distance < 10)
        {
            return true;
        }
@@ -156,7 +156,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     collect(coin)
     {
-        if(coin != null)
+        if(coin != null && !this.isMounted())
         {
             if(this.isInRange(coin))
             {
