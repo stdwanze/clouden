@@ -130,20 +130,10 @@ CM.CloudEngine=    class CloudEngine{
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
-                this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
+                this.world.applyForTile(CM.COINMAKER(this.world, this.imagerepo));
                 this.world.addObject( new CM.Coin(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),10));
-                this.world.applyForTile(function (tile){
-                    if(tile.isLand())
-                    {
-                        if(Math.random() < 0.01)
-                        {
-                            this.world.addObject( new CM.Coin(tile.location.clone().move(20,20),this.imagerepo.getImage("coin_10"),10));
-              
-                        }
-                    }
-                }.bind(this));
-                //this.world.addObject( new CM.VehicleSprite(new CM.Point(400,400),this.imagerepo.getImage("blimp"),CM.GroundLevel,0.5));
-            
+                this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
+               
 
                 window.requestAnimFrame = (function(callback) {
                     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||

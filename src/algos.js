@@ -110,6 +110,7 @@ CM.AnnotateWorld = function (tileArray, widthInTiles)
     }
     return ret;
 }
+
 CM.TILECREATOR = function (imagerepo,widthInTiles)
 {
     var array = CM.BuildWorld(widthInTiles);
@@ -168,4 +169,15 @@ CM.CLOUDGEN = function (world,repo){
                 }(startPos, Math.random()*5));
             return c;
         }
+}
+CM.COINMAKER = function  (world, imagerepo){ 
+    return function (tile){
+        if(tile.isLand())
+        {
+            if(Math.random() < 0.01)
+            {
+                world.addObject( new CM.Coin(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),10));
+            }
+        }
+    }
 }
