@@ -190,7 +190,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
                 {
                     this.getMountScores().get("FUEL").up(collect.getPointValue())
                 }
-                else if(this.isMounted() && collect.getTypeName() != "FUEL"){
+                else if(!this.isMounted() && collect.getTypeName() != "FUEL"){
 
                     this.scores.get(collect.getTypeName()).up(collect.getPointValue());
                 }
