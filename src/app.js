@@ -57,9 +57,13 @@ CM.CloudEngine=    class CloudEngine{
             
 
             var playerScores = this.player.getScores().getAll();
-            
-            this.osd.displayScores( playerScores,"BOTTOM");
+            this.osd.displayScores( playerScores,"BOTTOM-LEFT");
 
+            if(this.player.isMounted()){
+                var vScores = this.player.getMountScores().getAll();
+                this.osd.displayScores(vScores,"BOTTOM-RIGHT");
+            }
+            
             var self = this;
             // register next
             //if (this.run && this.stillrun()) {

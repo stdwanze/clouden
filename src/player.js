@@ -18,6 +18,9 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     getScores(){
         return this.scores;
     }
+    getMountScores(){
+        return this.vehicle.scores;
+    }
     setTileInfoRetrieve(retriever)
     {
         this.tileInfoRetriever = retriever;
@@ -106,25 +109,33 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     move(x,y)
     {   
-        if(x > 0) this.toggleSprite(this.spriteright);
-        if(x < 0) this.toggleSprite(this.spriteleft);
-
-
-        if(this.tileInfoRetriever && !this.isMounted())
+        if(this.isMounted())
         {
-            if(!this.checkMovement(x,0) || !this.checkMovement(0,y)) return;
+            var res = this.vehicle.move(x,y);
+            if(res)
+            {
+                super.move(x,y);
+            }
+        }
+        else {
+
+            if(x > 0) this.toggleSprite(this.spriteright);
+            if(x < 0) this.toggleSprite(this.spriteleft);
+
+
+            if(this.tileInfoRetriever && !this.isMounted())
+            {
+                if(!this.checkMovement(x,0) || !this.checkMovement(0,y)) return;
+            
+            }
+            this.sprite.toggleAnimation(true);
+            super.move(x,y);
            
-        }
-        this.sprite.toggleAnimation(true);
-        super.move(x,y);
-        if(this.vehicle != null)
-        {
-            this.vehicle.move(x,y);
-        }
-        if(this.sprite != null)
-        {
-            this.spriteright.move(x,y);
-            this.spriteleft.move(x,y);
+            if(this.sprite != null)
+            {
+                this.spriteright.move(x,y);
+                this.spriteleft.move(x,y);
+            }
         }
     }
     mount(vehicle)
@@ -170,18 +181,29 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     collect(collect)
     {
-        if(collect != null && !this.isMounted())
+        if(collect != null )
         {
+            
             if(this.isInRange(collect))
             {
-                this.scores.get(collect.getTypeName()).up(collect.getPointValue());
+                if(collect.getTypeName() == "FUEL" && this.isMounted() && this.z == CM.GroundLevel)
+                {
+                    this.getMountScores().get("FUEL").up(collect.getPointValue())
+                }
+                else if(this.isMounted() && collect.getTypeName() != "FUEL"){
+
+                    this.scores.get(collect.getTypeName()).up(collect.getPointValue());
+                }
                 return true;
+
             }
         }
+        
+        
         return false;
     }
     tick(){
-      if(this.isMounted())  this.vehicle.tick();
+      if(this.isMounted())  this.vehicle.tick(this);
         else this.sprite.tick();
     }
     

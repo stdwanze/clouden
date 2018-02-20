@@ -202,7 +202,34 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
         this.scores.add(new CM.Ammo(30));
         this.scores.add(new CM.Health(30));
         
-        
+        this.consumptionEfficiancy = 0.01;
+        this.wind = new CM.Point(-0.01,0);
+    }
+    tick(player)
+    {
+
+        if(this.z < CM.GroundLevel)
+        {
+            if(player != null) player.move(this.wind.x, this.wind.y);
+            else{
+                this.move(this.wind.x, this.wind.y);
+            }
+        }
+    }
+    move(x,y)
+    {
+        if(x == this.wind.x && y == this.wind.y) {
+            super.move(x,y);
+            return true;
+        }
+        if(this.scores.get("FUEL").getScore() > this.scores.get("FUEL").getMin()){
+            
+            var fuelConsumption= CM.distance(new CM.Point(0,0),new CM.Point(x,y));
+            this.scores.get("FUEL").reduce(fuelConsumption*this.consumptionEfficiancy);
+            super.move(x,y);
+            return true;
+        }
+        else return false;
     }
 }  
 

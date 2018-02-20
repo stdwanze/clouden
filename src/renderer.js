@@ -85,6 +85,9 @@ CM.Renderer = class Renderer {
     getScreenHeight(){
         return this.canvas.height;
     }
+    getScreenWidth(){
+        return this.canvas.width;
+    }
     clear()
     {
         this.ctxt.clearRect(0, 0, this.canvas.width, this.canvas.height);

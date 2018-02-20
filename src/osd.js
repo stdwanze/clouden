@@ -26,11 +26,23 @@ CM.OSD = class OSD
     }
     displayScores( scores, preferredPlace)
     {
+        var prefY = preferredPlace.split("-",1);
+        var prefX = preferredPlace.split("-",2)[1];
+        var screenwidth = this.renderer.getScreenWidth();
+        var screenheight = this.renderer.getScreenHeight();
+
+        var nextX = prefX == "LEFT" ? function (i,size){ return size*i*2; } :
+        function (i,size){ return screenwidth - (size*(i+1)*2); }
+
+        var nextY = prefY == "BOTTOM" ? function (size) { return screenheight - size; }:
+        function (size) { return size}; 
+
+
         for(var i = 0; i < scores.length; i++)
         {
             var score = scores[i];
-            var x = this.size*i*2;
-            var y = this.renderer.getScreenHeight() - 80;
+            var x = nextX(i,this.size);
+            var y = nextY(80); 
             var s = score.getScore();
             var m = score.getMax();
 

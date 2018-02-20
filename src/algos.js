@@ -196,7 +196,7 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
     return function (tile){
         if(tile.isLand())
         {
-            if(Math.random() < 0.01)
+            if(Math.random() < 0.05)
             {
                 var rand = Math.random() ;
                 if(rand > 0.75)
@@ -215,7 +215,8 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
                     return;
                 }
                 else {
-                 //   world.addObject( new CM.Coin(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),10));
+                 
+                       world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("fuel_10"),"FUEL",20));
                 }
             }
         }
