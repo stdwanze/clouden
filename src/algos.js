@@ -13,6 +13,28 @@ CM.distance= function (point1, point2)
 
     return diff;
 }
+CM.FireBallCreator = function (world, repo)
+{
+    return function (location, z, typename)
+    {
+        if(typename == "HANDGUN")
+        {
+     
+            var img = repo.getImage("fireball_small");       
+            var fb = new CM.FireBall(location,img,z,100,new CM.Point(3,0),0.1);
+        
+        }
+        else{
+            
+            var img = repo.getImage("fireball_small");
+            var fb = new CM.FireBall(location,img,z,250,new CM.Point(5,0),0.2);
+        }
+        fb.registerRangeEx(function (item){
+            world.removeObject(item);
+        })
+        world.addObject(fb);
+    }
+}
 CM.TILEACCESS = function (world) {
         return function (location){
         var c = world.getChunk(location);
@@ -170,13 +192,31 @@ CM.CLOUDGEN = function (world,repo){
             return c;
         }
 }
-CM.COINMAKER = function  (world, imagerepo){ 
+CM.COLLECTABLEMAKER = function  (world, imagerepo){ 
     return function (tile){
         if(tile.isLand())
         {
             if(Math.random() < 0.01)
             {
-                world.addObject( new CM.Coin(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),10));
+                var rand = Math.random() ;
+                if(rand > 0.75)
+                {
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("ammo_10"),"AMMO",10));
+                    return;
+                }
+                if(rand > 0.5)
+                {
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("health_10"),"HEALTH",10));
+                    return;
+                }
+                if(rand > 0.25)
+                {
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),"COINS",10));
+                    return;
+                }
+                else {
+                 //   world.addObject( new CM.Coin(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),10));
+                }
             }
         }
     }

@@ -22,9 +22,23 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     {
         this.tileInfoRetriever = retriever;
     }
+    setFireBallCreator(creator)
+    {
+        this.fireBallMaker = creator;
+    }   
     fire()
     {
-        this.scores.get("AMMO").reduce();
+        
+        var ammoScore = this.isMounted() ? this.vehicle.scores.get("AMMO"):  this.scores.get("AMMO");
+        var type = this.isMounted() ? "BLIMBGUN" : "HANDGUN";
+        var midPoint = this.isMounted() ? this.vehicle.getMidPoint() : this.getMidPoint();
+        var z = this.isMounted() ? this.vehicle.z : this.z;
+        if(ammoScore.getScore() > ammoScore.getMin())
+        {
+    
+            this.fireBallMaker(midPoint, z, type);
+            ammoScore.reduce();
+        }
     }   
  draw(renderer){
 
@@ -154,13 +168,13 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
        }
        else return false;
     }
-    collect(coin)
+    collect(collect)
     {
-        if(coin != null && !this.isMounted())
+        if(collect != null && !this.isMounted())
         {
-            if(this.isInRange(coin))
+            if(this.isInRange(collect))
             {
-                this.scores.get("COINS").up(coin.getPointValue());
+                this.scores.get(collect.getTypeName()).up(collect.getPointValue());
                 return true;
             }
         }

@@ -109,15 +109,43 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                        }
                     }
 };
+CM.FireBall = class FireBall extends CM.Sprite{
+    constructor(location, image,z, range, movementVector, scaleFactor)
+    {
+        super(image,location,z,true,scaleFactor);
+        this.range = range;
+        this.speed = movementVector;
 
-CM.Coin = class Coin extends CM.Sprite
+        this.travelLength = 0;
+    }
+    tick()
+    {
+        var preTickLoc = this.position.clone();
+        this.move(this.speed.x,this.speed.y);
+        this.travelLength += CM.distance(preTickLoc, this.position);
+        if(this.travelLength >= this.range && this.rangeExCallback)
+        {
+            this.rangeExCallback(this);
+        }
+    }
+    registerRangeEx(callback)
+    {
+        this.rangeExCallback = callback;
+    }
+
+}
+CM.Collectable = class Collectable extends CM.Sprite
 {
-    constructor(location,image,pvalue)
+    constructor(location,image,typename, pvalue)
     {
        super(image,location,CM.GroundLevel,false,0.3);
        this.pointvalue = pvalue;
        this.collectable = true;
-      
+       this.typeName = typename;
+    }
+    getTypeName()
+    {
+        return this.typeName;
     }
     getPointValue(){
         return this.pointvalue;
