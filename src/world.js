@@ -28,8 +28,9 @@ CM.TileSprite = class TileSprite {
     draw(renderer)
     {
        this.sprite.draw(renderer);
-    //    if(this.info.decals)
-    //     {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,"#00FF00");}
+
+        // if(this.info.chunkborder)
+        // {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,this.info.color);}
     // renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
             if(this.isLand()){
         //     if(this.info.borderTop) renderer.drawRectangle(this.location.x+10, this.location.y, 2,2,"#FF0000");
@@ -53,21 +54,25 @@ CM.TileSprite = class TileSprite {
 
 }
 CM.TileInfo = class TileInfo{
-    constructor(isLand,borderTop,borderLeft,borderRight,borderDown, decals ){
+    constructor(isLand,borderTop,borderLeft,borderRight,borderDown, decals, chunkborder, color){
         this.isLand = isLand;
         this.borderTop = borderTop;
         this.borderLeft = borderLeft;
         this.borderRight =borderRight;
         this.borderDown =borderDown;
         this.decals =decals;
+        this.chunkborder = chunkborder;
+        this.color = color;
     }
 }
 CM.Chunk = class Chunk {
-    constructor(location/*point*/, widthInTiles, sizeOfTile, tileCreator){
+    constructor(location/*point*/, widthInTiles, sizeOfTile, tileCreator, worldx, worldy){
         this.locationbase = location;
         this.tilesize = sizeOfTile;
         this.widthInTiles = widthInTiles;
         this.tiles = [];
+        this.worldx = worldx;
+        this.worldy = worldy;
         this.init(tileCreator);
 
 
@@ -89,14 +94,16 @@ CM.Chunk = class Chunk {
     }
     init(tileCreator){
 
+        var offSetX = this.worldx*this.widthInTiles;
+        var offSetY = this.worldy*this.widthInTiles;
         for(var i = 0 ; i < this.widthInTiles; i++)
         {
             
             var row = [];
             for(var k = 0 ; k < this.widthInTiles; k++)
             {
-
-                var tile = tileCreator(i,k,this.locationbase, this.tilesize);
+                
+                var tile = tileCreator(i,k,this.locationbase, this.tilesize, offSetX, offSetY);
                 row.push(tile);
             } 
             this.tiles.push(row);
@@ -130,6 +137,7 @@ CM.World = class World{
         this.lastY = -1;
         this.sizeX = sizeX;
         this.sizeY = sizeY;
+        this.hitables = {};
 
         this.init(sizeX,sizeY,this.CHUNKWIDTHINTILES , this.TILESIZE);
     }
@@ -218,9 +226,18 @@ CM.World = class World{
         var row = [];
         for(var i = 0; i < nbrOfChunks; i++ )
         {
-            row.push(new CM.Chunk(new CM.Point(i*chunkWidthsIntiles*sizeOfTile,rownbr*chunkWidthsIntiles*sizeOfTile),chunkWidthsIntiles,sizeOfTile, this.tileCreator));
+          
+            row.push(new CM.Chunk(new CM.Point((i*chunkWidthsIntiles)*sizeOfTile,(rownbr*chunkWidthsIntiles)*sizeOfTile),chunkWidthsIntiles,sizeOfTile, this.tileCreator, i,rownbr));
         }
         return row;
+    }
+
+    getHitables(){
+        return Object.values(this.hitables);
+    }
+    addHitable(name,obj)
+    {
+        this.hitables[name] = obj;
     }
     getObjects(){
         return this.objects.sort(function (a,b) {

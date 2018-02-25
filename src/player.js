@@ -39,10 +39,16 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(ammoScore.getScore() > ammoScore.getMin())
         {
     
-            this.fireBallMaker(midPoint, z, type);
+            var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
+            this.fireBallMaker(midPoint, z, type, new CM.Point(5,0),source );
             ammoScore.reduce();
         }
     }   
+    hit(strength)
+    {
+        if(this.isMounted()) this.getMountScores().get("HEALTH").reduce(strength);
+        else this.getScores().get("HEALTH").reduce(strength);
+    }
  draw(renderer){
 
         if(this.vehicle != null)
@@ -51,7 +57,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         }
         else {
             //renderer.drawRectangle(this.position.x,this.position.y,this.sizeX,this.sizeY,"#00FF00")
-              this.sprite.draw(renderer);
+            
+            this.sprite.draw(renderer);
         }
     }
   
@@ -115,6 +122,11 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             if(res)
             {
                 super.move(x,y);
+                if(this.sprite != null)
+                {
+                    this.spriteright.move(x,y);
+                    this.spriteleft.move(x,y);
+                }
             }
         }
         else {
@@ -188,13 +200,15 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             {
                 if(collect.getTypeName() == "FUEL" && this.isMounted() && this.z == CM.GroundLevel)
                 {
-                    this.getMountScores().get("FUEL").up(collect.getPointValue())
+                    this.getMountScores().get("FUEL").up(collect.getPointValue());
+                    return true;
                 }
                 else if(!this.isMounted() && collect.getTypeName() != "FUEL"){
 
                     this.scores.get(collect.getTypeName()).up(collect.getPointValue());
+                    return true;
                 }
-                return true;
+              
 
             }
         }
@@ -203,8 +217,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         return false;
     }
     tick(){
-      if(this.isMounted())  this.vehicle.tick(this);
-        else this.sprite.tick();
+      if(!this.isMounted()) this.sprite.tick();
     }
     
 }

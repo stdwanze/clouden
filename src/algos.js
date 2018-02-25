@@ -13,24 +13,45 @@ CM.distance= function (point1, point2)
 
     return diff;
 }
+CM.getVector = function (start, end, scale)
+{
+    var dist = CM.distance(start,end);
+    var rawx = start.x - end.x;
+    var rawy = start.y - end.y;
+    
+    var x = rawx*-1 / (dist*scale);
+    var y = rawy*-1 / (dist*scale);
+
+    return new CM.Point(x,y);
+    
+}
 CM.FireBallCreator = function (world, repo)
 {
-    return function (location, z, typename)
+    return function (location, z, typename, movementvector, sourceId)
     {
-        if(typename == "HANDGUN")
+        if(typename == "DRAGONFIRE")
+        {
+            var img = repo.getImage("fireball_small");       
+            var fb = new CM.FireBall(location,img,z,100,movementvector,0.1, sourceId);
+        
+        }
+        else if(typename == "HANDGUN")
         {
      
             var img = repo.getImage("fireball_small");       
-            var fb = new CM.FireBall(location,img,z,100,new CM.Point(3,0),0.1);
+            var fb = new CM.FireBall(location,img,z,100,movementvector,0.1, sourceId);
         
         }
         else{
             
             var img = repo.getImage("fireball_small");
-            var fb = new CM.FireBall(location,img,z,250,new CM.Point(5,0),0.2);
+            var fb = new CM.FireBall(location,img,z,250,movementvector,0.2,sourceId);
         }
         fb.registerRangeEx(function (item){
             world.removeObject(item);
+        })
+        fb.registerGetHitables(function (getHitables){
+            return world.getHitables();
         })
         world.addObject(fb);
     }
@@ -61,9 +82,10 @@ CM.BuildWorld = function (tilewidth){
 
         var probability = 0;
         var probabilityModifier = 0;
-
+        var borderDetected = false;
         if (i<(mapWidth*2)||i%mapWidth<2||i%mapWidth>(mapWidth-3)||i>(mapWidth*mapheight)-((mapWidth*2)+1)){
 
+            borderDetected = true;
             // make the edges of the map water
             probability=0;
         }
@@ -92,12 +114,12 @@ CM.BuildWorld = function (tilewidth){
 
         rndm=(Math.random()*101);
         tileArray[i]=(rndm<(probability+probabilityModifier));
-        
+        if(borderDetected) tileArray[i] = false;
     }
     return tileArray;
 
 }
-CM.AnnotateWorld = function (tileArray, widthInTiles)
+CM.AnnotateWorld = function (tileArray, widthInTiles, color)
 {
     
     function get(manipulate,i,array)
@@ -113,20 +135,33 @@ CM.AnnotateWorld = function (tileArray, widthInTiles)
     {
         if(curr != null && other !=null)
         {
-            return curr !== other;
+            return curr != other;
         }
         else return false;
     }
     var ret = [];
+    var mapWidth = 300;
+    var mapheight = 300;
     for(var i = 0; i < tileArray.length ; i++)
     {
+        var chunkBorderArea = false;
+        if(i%mapWidth > (mapWidth-2))
+        {
+            chunkBorderArea = true;
+        }
+        if (i<(mapWidth*2)||i%mapWidth<2||i%mapWidth>(mapWidth-3)||i>(mapWidth*mapheight)-((mapWidth*2)+1)){
+            chunkBorderArea = true;
+        }
+      
         var tile = new CM.TileInfo(
             tileArray[i],
             isDiff(tileArray[i],get(-widthInTiles,i,tileArray)),
             isDiff(tileArray[i],get(-1,i,tileArray)),
             isDiff(tileArray[i],get(1,i,tileArray)),
             isDiff(tileArray[i],get(widthInTiles,i,tileArray)),
-            Math.random() > 0.8 &&  tileArray[i] ? true: false
+            Math.random() > 0.8 &&  tileArray[i] ? true: false,
+            chunkBorderArea,
+            color
         );
         ret.push(tile);
     }
@@ -135,14 +170,19 @@ CM.AnnotateWorld = function (tileArray, widthInTiles)
 
 CM.TILECREATOR = function (imagerepo,widthInTiles)
 {
-    var array = CM.BuildWorld(widthInTiles);
-    array = CM.AnnotateWorld(array, widthInTiles);
 
-    return function(i,k,location,tileSize)
+    var index = Math.floor(Math.random()*10);
+    var color = [ "#F00000", "0F0000", "#00F000", "#000F00", "#0000F0", "#00000F", "#FF0000", "00FF00", "0000FF", "#FFFF00", "#FFFFFF", "#000000"];
+    var array = CM.BuildWorld(widthInTiles);
+    array = CM.AnnotateWorld(array, widthInTiles, color[index]);
+
+    return function(i,k,location,tileSize, worldx, worldy)
     {
         
-        var info = array[k*widthInTiles+i];
-        if(i< 2 && k < 2)
+
+      //  var info = worldx != 0 && worldy != 0 ? array[k*worldy*widthInTiles+(i*worldx)]: array[k*widthInTiles+(i)];
+        var info =  array[(worldy+k)*widthInTiles+(i+worldx)];
+        if(worldx == 0 && worldy == 0 && i< 2 && k < 2)
          {
             c = "tile_land_desert";
             info.isLand = true;
@@ -169,6 +209,7 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
 
         return ts;
     }
+
 }
 CM.CLOUDGEN = function (world,repo){
 

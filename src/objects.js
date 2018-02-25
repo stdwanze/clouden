@@ -1,7 +1,7 @@
 
 
 CM = window.CM || {};
-
+CM.ObjId = 1;
 CM.CloudObject = class CloudObject {
     constructor(location,sizex,sizey,z)
     {
@@ -22,6 +22,7 @@ CM.MoveableObject = class Moveable extends CM.CloudObject{
     constructor(location,sizex,sizey,z)
     {
        super(location,sizex,sizey,z);
+       this.id = CM.ObjId++;
        
     }
     move(x,y)
@@ -110,13 +111,15 @@ CM.Sprite = class Sprite extends CM.MoveableObject{
                     }
 };
 CM.FireBall = class FireBall extends CM.Sprite{
-    constructor(location, image,z, range, movementVector, scaleFactor)
+    constructor(location, image,z, range, movementVector, scaleFactor,sourceIds)
     {
         super(image,location,z,true,scaleFactor);
         this.range = range;
         this.speed = movementVector;
-
+        this.sourceIds = sourceIds;
         this.travelLength = 0;
+        this.getHitables = null;
+        this.strength = 4;
     }
     tick()
     {
@@ -127,10 +130,34 @@ CM.FireBall = class FireBall extends CM.Sprite{
         {
             this.rangeExCallback(this);
         }
+        else
+        {
+            var hit = false;
+            var objs = this.getHitables();
+            objs.forEach(function (obj){
+                if((this.sourceIds.length > 0 && this.sourceIds.findIndex(obj.id) == -1) || (this.sourceIds.length == undefined && this.sourceIds != obj.id))
+                {
+                        if(CM.distance(this.position, obj.position) < 15)
+                        {
+                            obj.hit(this.strength);
+                            hit = true;
+                        }
+                    
+                }
+            }.bind(this));
+            if(hit)
+            {
+                this.rangeExCallback(this);
+            }
+        }
     }
     registerRangeEx(callback)
     {
         this.rangeExCallback = callback;
+    }
+    registerGetHitables(callback)
+    {
+        this.getHitables = callback;
     }
 
 }
@@ -210,7 +237,13 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
 
         if(this.z < CM.GroundLevel)
         {
-            if(player != null) player.move(this.wind.x, this.wind.y);
+            if(this.mountedState == true)
+            {
+                if(player != null){
+                    player.move(this.wind.x, this.wind.y);
+                    this.move(this.wind.x, this.wind.y);
+                }
+            }
             else{
                 this.move(this.wind.x, this.wind.y);
             }
@@ -220,6 +253,7 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
     {
         if(x == this.wind.x && y == this.wind.y) {
             super.move(x,y);
+            
             return true;
         }
         if(this.scores.get("FUEL").getScore() > this.scores.get("FUEL").getMin()){
@@ -230,6 +264,10 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
             return true;
         }
         else return false;
+    }
+    hit(strength)
+    {
+        this.scores.get("HEALTH").reduce(strength);
     }
 }  
 

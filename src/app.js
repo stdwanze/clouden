@@ -41,7 +41,7 @@ CM.CloudEngine=    class CloudEngine{
             // draw movableobjects
             this.world.getObjects().forEach(element =>
             {
-                element.tick();
+                element.tick(this.player);
                 if(this.player.z >= element.z+0.3)
                 {
                     this.renderer.lighter()
@@ -138,7 +138,14 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
                 this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10));
                 this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
-               
+                
+                var dragon = new CM.Dragon(new CM.Point( 150,150),this.imagerepo.getImage("dragon_small"));
+                dragon.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
+                this.world.addObject(dragon);
+
+                this.world.addHitable("player", this.player);
+                this.world.addHitable("dragon1", dragon);
+                
 
                 window.requestAnimFrame = (function(callback) {
                     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
