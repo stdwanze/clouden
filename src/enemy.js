@@ -7,7 +7,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
         super(location,image,CM.SkyLevel+1,0.5);
         this.spit = null;
         this.scores = new CM.ScoreSet();
-        this.scores.add(new CM.Score("HEALTH",100));
+        this.scores.add(new CM.Health(10));
         this.speed = 0.1;
         this.cooldown = 0;
     }
@@ -23,7 +23,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     {
         if(player != null){
      
-            if(CM.distance(this.position,player.position) < 100)
+            if(CM.distance(this.position,player.position) < 150)
             {
      
                 var movement = CM.getVector(this.position, player.position, 1);

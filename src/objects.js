@@ -135,7 +135,7 @@ CM.FireBall = class FireBall extends CM.Sprite{
             var hit = false;
             var objs = this.getHitables();
             objs.forEach(function (obj){
-                if((this.sourceIds.length > 0 && this.sourceIds.findIndex(obj.id) == -1) || (this.sourceIds.length == undefined && this.sourceIds != obj.id))
+                if((this.sourceIds.length > 0 && this.sourceIds.indexOf(obj.id) == -1) || (this.sourceIds.length == undefined && this.sourceIds != obj.id))
                 {
                         if(CM.distance(this.position, obj.position) < 15)
                         {
