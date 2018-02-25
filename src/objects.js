@@ -23,12 +23,16 @@ CM.MoveableObject = class Moveable extends CM.CloudObject{
     {
        super(location,sizex,sizey,z);
        this.id = CM.ObjId++;
-       
+       this.remove = null;
     }
     move(x,y)
     {
         this.position.move(x,y);
        
+    }
+    setRemover(remove)
+    {
+        this.remove = remove;
     }
   
 }

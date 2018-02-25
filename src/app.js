@@ -141,6 +141,7 @@ CM.CloudEngine=    class CloudEngine{
                 
                 var dragon = new CM.Dragon(new CM.Point( 150,150),this.imagerepo.getImage("dragon_small"));
                 dragon.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
+                dragon.setRemover(this.world.removeObject.bind(this.world));
                 this.world.addObject(dragon);
 
                 this.world.addHitable("player", this.player);
