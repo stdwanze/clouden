@@ -1,0 +1,108 @@
+@startuml
+class CloudObject{
+    +tick()
+    +getMidPoint()
+    CM.Point position
+    number sizeX
+    number sizeY
+    number z
+    bool interactable
+
+}
+class MovableObject{
+    +move(x,y)
+    +setRemover(func)
+    number id
+    func remover
+}
+
+class Sprite{
+    +draw(renderer)
+    +toggleAnimation()
+    +setStatic(bool)
+    +getImage()
+    image image
+    bool animate
+    number scalingfactor
+    -init(image)
+    -[] imagestep
+
+}
+class VehicleSprite{
+    +setMountedState(bool)
+    +setTicker(func)
+    bool interactable
+    -func ticker
+    -bool mountedState
+}
+class Collectable{
+    +getTypeName()
+    +getPointValue()
+    string typeName
+    bool collectable
+    number pointValue
+}
+
+class Blimp{
+    ScoreSet scores 
+    -number consumptionEfficiancy
+    -CM.Point wind
+    hit(strength)
+}
+class Dragon{
+    -func spit
+    ScoreSet scores
+    -number cooldown
+    -bool hitted
+    +hit(strength)
+    +setFireBallCreator(func)
+    [draw]
+}
+
+class CloudPlayer{
+   ScoreSet scores
+   VehicleSprite VehicleSprite
+   Sprite sprite [left,right]
+   -func tileInfoRetriever
+   -func fireBallMaker
+   +setTileInfoRetrieve(func)
+   +setFireBallCreator(func)
+   +getScores()
+   +getMountScores()
+   +fire()
+   +hit(strength)
+   +descend(number)
+   +ascend(number)
+   +stop()
+   +mount(VehicleSprite)
+   +dismount()
+   +isMounted()
+   +isInRange(CloudObject)
+   +collect(Collectable)
+
+   -getBoundingPos(x,y)
+   -getBoundingPosWhere(string)
+   -checkMovement(x,y)
+   -toggleSprite(sprite)
+   
+
+}
+class Hitable {
+     
+     +hit(strength)
+     [draw]
+}
+
+CloudObject <|-- MovableObject
+MovableObject <|-- Sprite
+MovableObject <|-- CloudPlayer
+
+Sprite <|-- Collectable
+Sprite <|-- VehicleSprite
+VehicleSprite <|-- Blimp
+VehicleSprite <|-- Dragon
+
+CloudPlayer o-- Sprite
+CloudPlayer -- VehicleSprite
+
+@enduml

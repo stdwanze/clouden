@@ -54,6 +54,7 @@ CM.CloudEngine=    class CloudEngine{
             this.player.tick();
             this.renderer.draw(this.player);
             
+            this.osdocu.draw(this.renderer); //, this.player.position);
             
 
             var playerScores = this.player.getScores().getAll();
@@ -158,6 +159,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.inputHandler.on("arrowKeys",this.handleMove.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
 
+                this.osdocu = new CM.OnScreenDocu(new CM.Point(-0,-0));
 
 
         }

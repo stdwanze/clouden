@@ -14,6 +14,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
        this.scores.add(new CM.Health(10));
        this.scores.add(new CM.Ammo(10));
        this.scores.add(new CM.Coins());
+
+       this.direction = new CM.Point(6,0);
     }
     getScores(){
         return this.scores;
@@ -39,17 +41,18 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(ammoScore.getScore() > ammoScore.getMin())
         {
     
+
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
-            this.fireBallMaker(midPoint, z, type, new CM.Point(5,0),source );
+            this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source );
             ammoScore.reduce();
         }
     }   
     hit(strength)
     {
-        if(this.isMounted()) this.getMountScores().get("HEALTH").reduce(strength);
+        if(this.isMounted()) this.vehicle.hit(strength); //this.getMountScores().get("HEALTH").reduce(strength);
         else this.getScores().get("HEALTH").reduce(strength);
     }
- draw(renderer){
+    draw(renderer){
 
         if(this.vehicle != null)
         {
@@ -116,6 +119,9 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     move(x,y)
     {   
+
+        if(Math.abs(x) >1 || Math.abs(y) > 1) this.direction = new CM.Point(x,y);
+
         if(this.isMounted())
         {
             var res = this.vehicle.move(x,y);

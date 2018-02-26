@@ -147,3 +147,25 @@ CM.Health = class Health extends CM.Score
         return ret;
     }
  }
+CM.Hitable = class Hitable{
+    constructor()
+    {
+        this.hitted = false;
+        this.hitcount = 0;
+    }
+    draw(cloudobject, renderer)
+    {
+        if(this.hitted)
+        {
+            var pos = cloudobject.getMidPoint();
+            pos.move(-2,-2);
+            renderer.drawRectangle(pos.x,pos.y,5,5,"#FF0000");
+            this.hitcount++;
+            this.hitted = false;
+        }
+    }
+    hit()
+    {
+       this.hitted = true;
+    }
+}

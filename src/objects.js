@@ -207,11 +207,7 @@ CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
         this.mountedState = val;
         this.setStatic( val);
     }
-    move(x,y)
-    {
-        super.move(x,y);
-      
-    }
+   
     draw(renderer)
      {
         super.draw(renderer);
@@ -235,6 +231,12 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
         
         this.consumptionEfficiancy = 0.01;
         this.wind = new CM.Point(-0.01,0);
+        this.hitmanager = new CM.Hitable();
+    }
+    draw(renderer)
+    {
+        super.draw(renderer);
+        this.hitmanager.draw(this,renderer);
     }
     tick(player)
     {
@@ -272,6 +274,7 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
     hit(strength)
     {
         this.scores.get("HEALTH").reduce(strength);
+        this.hitmanager.hit();
     }
 }  
 

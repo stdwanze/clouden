@@ -10,7 +10,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
         this.scores.add(new CM.Health(20));
         this.speed = 0.1;
         this.cooldown = 0;
-        this.hitted = false;
+        this.hitmanager = new CM.Hitable();
     }
     
     setFireBallCreator(fireballmaker)
@@ -19,9 +19,10 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     }
     hit(strength)
     {
+        this.hitmanager.hit();
         var healthBar = this.scores.get("HEALTH");
         healthBar.reduce(strength);
-        this.hitted = true;
+       
         if(healthBar.getScore() == healthBar.getMin() && this.remove)
         {
             this.remove(this);
@@ -54,11 +55,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     draw(renderer)
     {
         super.draw(renderer);
-        if(this.hitted) {
-            var pos = this.getMidPoint();
-            pos.move(-2,-2);
-            renderer.drawRectangle(pos.x,pos.y,5,5,"#FF0000");
-            this.hitted = false;
-        }
+        this.hitmanager.draw(this, renderer);
+      
     }
 }
