@@ -159,7 +159,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.inputHandler.on("arrowKeys",this.handleMove.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
 
-                this.osdocu = new CM.OnScreenDocu(new CM.Point(-0,-0));
+                this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100));
 
 
         }

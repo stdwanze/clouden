@@ -96,12 +96,15 @@ CM.Renderer = class Renderer {
     {
         this.zoom = zoom;
     }
-    fillText(text,x1,y1)
+    fillText(text,x1,y1, size)
     {
-        this.ctxt.font = "20px Ariel";
+        if(size == undefined) size = 20;
+        this.ctxt.fillStyle  = "#24272b";
+        this.ctxt.font = size+ "px Ariel black";
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
        
-        this.ctxt.fillText(text,x1,y1);
+        this.ctxt.fillText(text,worldX,worldY);
+        this.ctxt.restore();
     }
 }
