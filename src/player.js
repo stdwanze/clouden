@@ -219,6 +219,11 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
                     this.getMountScores().get("FUEL").up(collect.getPointValue());
                     return true;
                 }
+                else if(collect.getTypeName() == "AMMO" && this.isMounted() && this.z == CM.GroundLevel)
+                {
+                    this.getMountScores().get("AMMO").up(collect.getPointValue());
+                    return true;
+                }
                 else if(!this.isMounted() && collect.getTypeName() != "FUEL"){
 
                     this.scores.get(collect.getTypeName()).up(collect.getPointValue());
