@@ -167,9 +167,10 @@ CM.FireBall = class FireBall extends CM.Sprite{
 }
 CM.Collectable = class Collectable extends CM.Sprite
 {
-    constructor(location,image,typename, pvalue)
+    constructor(location,image,typename, pvalue,scaleFactor)
     {
-       super(image,location,CM.GroundLevel,false,0.3);
+        var scale = scaleFactor != null ? scaleFactor : 0.3;
+       super(image,location,CM.GroundLevel,false,scale);
        this.pointvalue = pvalue;
        this.collectable = true;
        this.typeName = typename;

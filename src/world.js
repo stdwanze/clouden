@@ -154,6 +154,10 @@ CM.World = class World{
        var chunkCoordinates = this.getChunkCoordinates(location);
         var x = chunkCoordinates.x;
         var y = chunkCoordinates.y;
+        return this.getChunkByIndeces(x,y);
+    }
+    getChunkByIndeces(x,y)
+    { 
         return this.world[y][x];
     }
 
@@ -199,6 +203,8 @@ CM.World = class World{
             this.cachedHolder = holder;
             this.lastX =x;
             this.lastY = y;
+            if(this.chunksCachedCallback) this.chunksCachedCallback(x,y);
+
             return holder.tiles;
 
         }
@@ -212,7 +218,7 @@ CM.World = class World{
     }
     getTiles(x,y)
     {
-        return this.world[y][x].getTiles();
+        return this.getChunkByIndeces(x,y).getTiles();
     }
     init(nbrOfChunksX,nbrOfChunksY,chunkWidthsIntiles,sizeOfTile)
     {
@@ -234,6 +240,10 @@ CM.World = class World{
 
     getHitables(){
         return Object.values(this.hitables);
+    }
+    getHitablesByKey(key)
+    {
+       return this.hitables[key];
     }
     addHitable(name,obj)
     {
@@ -290,5 +300,9 @@ CM.World = class World{
             return nearest;
         }
         return null;
+    }
+    setChunksCachedCallback(callback)
+    {
+        this.chunksCachedCallback = callback;
     }
 }

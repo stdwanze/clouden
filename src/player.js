@@ -57,6 +57,16 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(this.vehicle != null)
         {
             // draw nothing?
+            var start = this.getMidPoint();
+            start.move(-1,-1);
+            var sizex = this.direction.x;
+            var sizey = this.direction.y;
+            if(this.direction.x == 0) sizex = 1;
+            if(this.direction.y == 0) sizey = 1;
+            if(this.direction.y > 3) sizey = 3;
+            if(this.direction.x > 3) sizex = 3;
+            
+            renderer.drawRectangle(start.x,start.y,sizex, sizey, "#59616d");
         }
         else {
             //renderer.drawRectangle(this.position.x,this.position.y,this.sizeX,this.sizeY,"#00FF00")

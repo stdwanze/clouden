@@ -233,6 +233,63 @@ CM.CLOUDGEN = function (world,repo){
             return c;
         }
 }
+CM.ADDENEMYMAKER = function (world, imagerepo)
+{
+    function makeDragon (location, i)
+    {
+        var dragon = new CM.Dragon(location.clone(),imagerepo.getImage("dragon_small"));
+        dragon.setFireBallCreator(CM.FireBallCreator(world,imagerepo));
+        dragon.setRemover(world.removeObject.bind(world));
+        world.addObject(dragon);
+
+        world.addHitable("dragon"+i, dragon);
+     
+    }
+
+    function perChunk(x1,y1)
+    {
+        if(x1 < 0 || y1 < 0) return;
+        var c = world.getChunkByIndeces(x1,y1);
+        for(var i = 0; i < 3; i++)
+        {
+            var dragon = world.getHitablesByKey("dragon"+x1+"_"+y1+"_"+i);
+            if(dragon == undefined)
+            {
+                var locbase = c.locationbase.clone();
+                var xOffset = Math.random()*c.tilesize*c.widthInTiles;
+                var yOffSet =Math.random()*c.tilesize*c.widthInTiles;
+                makeDragon(locbase.move(xOffset,yOffSet),""+x1+"_"+y1+"_"+i)
+            }
+        }
+      
+    }
+    return function (x,y)
+    {
+        //1 2 3
+        //4 x 5
+        //6 7 8
+
+
+        // 1
+        perChunk(x-1,y-1);
+        // 2
+        perChunk(x,y-1);
+        // 3
+        perChunk(x+1,y-1);
+        // 4
+        perChunk(x-1, y);
+        // 5
+        perChunk(x+1,y);
+        // 6
+        perChunk(x-1,y+1);
+        // 7
+        perChunk(x,y+1);
+        // 8
+        perChunk(x+1,y+1);
+
+
+    }
+}
 CM.COLLECTABLEMAKER = function  (world, imagerepo){ 
     return function (tile){
         if(tile.isLand())
@@ -242,22 +299,22 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
                 var rand = Math.random() ;
                 if(rand > 0.75)
                 {
-                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("ammo_10"),"AMMO",10));
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("ammo_10"),"AMMO",10,0.4));
                     return;
                 }
                 if(rand > 0.5)
                 {
-                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("health_10"),"HEALTH",10));
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("health_10"),"HEALTH",10,0.4));
                     return;
                 }
                 if(rand > 0.25)
                 {
-                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),"COINS",10));
+                    world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("coin_10"),"COINS",10,0.2));
                     return;
                 }
                 else {
                  
-                       world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("fuel_10"),"FUEL",20));
+                       world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("fuel_10"),"FUEL",20,0.4));
                 }
             }
         }

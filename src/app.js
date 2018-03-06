@@ -133,6 +133,8 @@ CM.CloudEngine=    class CloudEngine{
         }
         init(){
 
+                this.world.setChunksCachedCallback(CM.ADDENEMYMAKER(this.world,this.imagerepo));
+
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 this.player.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
