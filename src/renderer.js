@@ -27,13 +27,17 @@ CM.Renderer = class Renderer {
     }
     drawRectangle(x1,y1,sizex,sizey,color)
     {
-       
+        this.drawRectangleZ(x1,y1,sizex,sizey,color,this.zoom);
 
+    }
+    drawRectangleZ(x1,y1,sizex,sizey,color, z)
+    {
+       
         this.ctxt.fillStyle = color;
 
-        var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
-        var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
-        this.ctxt.fillRect(worldX,worldY,sizex*this.zoom,sizey*this.zoom);
+        var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2,z);
+        var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2,z);
+        this.ctxt.fillRect(worldX,worldY,sizex*z,sizey*z);
     }
     drawRectangleStatic(x,y,sizex,sizey,color)
     {
@@ -101,8 +105,8 @@ CM.Renderer = class Renderer {
         if(size == undefined) size = 20;
         this.ctxt.fillStyle  = "#24272b";
         this.ctxt.font = size+ "px Ariel black";
-        var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
-        var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
+        var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2,3);
+        var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2,3);
        
         this.ctxt.fillText(text,worldX,worldY);
         this.ctxt.restore();

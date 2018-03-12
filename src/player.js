@@ -3,19 +3,20 @@ CM = window.CM || {};
 
 CM.CloudPlayer = class Player extends CM.MoveableObject {
     constructor(position, image, imageleft){
-      super(position, image.width*(1/CM.GroundLevel),image.height*(1/CM.GroundLevel),CM.GroundLevel);
-    
-      this.spriteright = new CM.Sprite(image , position,CM.GroundLevel, false,(1/CM.GroundLevel));
-      this.spriteleft = new CM.Sprite(imageleft , position,CM.GroundLevel, false,(1/CM.GroundLevel));
-      this.sprite = this.spriteright;
-      
-       this.vehicle = null;
-       this.scores = new CM.ScoreSet();
-       this.scores.add(new CM.Health(10));
-       this.scores.add(new CM.Ammo(10));
-       this.scores.add(new CM.Coins());
+        super(position, image.width*(1/CM.GroundLevel),image.height*(1/CM.GroundLevel),CM.GroundLevel);
+        
+        this.spriteright = new CM.Sprite(image , position,CM.GroundLevel, false,(1/CM.GroundLevel));
+        this.spriteleft = new CM.Sprite(imageleft , position,CM.GroundLevel, false,(1/CM.GroundLevel));
+        this.sprite = this.spriteright;
+        
+        this.vehicle = null;
+        this.scores = new CM.ScoreSet();
+        this.scores.add(new CM.Health(10));
+        this.scores.add(new CM.Ammo(10));
+        this.scores.add(new CM.Coins());
 
-       this.direction = new CM.Point(6,0);
+        this.direction = new CM.Point(6,0);
+        this.dead = false;
     }
     getScores(){
         return this.scores;
@@ -41,7 +42,6 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(ammoScore.getScore() > ammoScore.getMin())
         {
     
-
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
             this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source );
             ammoScore.reduce();
@@ -50,23 +50,26 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     hit(strength)
     {
         if(this.isMounted()) this.vehicle.hit(strength); //this.getMountScores().get("HEALTH").reduce(strength);
-        else this.getScores().get("HEALTH").reduce(strength);
+        else{
+
+            this.getScores().get("HEALTH").reduce(strength);
+
+            if(this.getScores().get("HEALTH").getScore() == 0 && !this.dead) 
+            {
+                this.dead = true;
+                CM.PLAYERDEATH(this);
+            }
+        }
+    }
+    getMovementDirection(){
+        return this.direction;
     }
     draw(renderer){
 
         if(this.vehicle != null)
         {
             // draw nothing?
-            var start = this.getMidPoint();
-            start.move(-1,-1);
-            var sizex = this.direction.x;
-            var sizey = this.direction.y;
-            if(this.direction.x == 0) sizex = 1;
-            if(this.direction.y == 0) sizey = 1;
-            if(this.direction.y > 3) sizey = 3;
-            if(this.direction.x > 3) sizex = 3;
-            
-            renderer.drawRectangle(start.x,start.y,sizex, sizey, "#59616d");
+          
         }
         else {
             //renderer.drawRectangle(this.position.x,this.position.y,this.sizeX,this.sizeY,"#00FF00")
@@ -173,7 +176,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         {
             if(this.isInRange(vehicle)){
                 this.vehicle = vehicle;
-                this.vehicle.setMountedState(true);
+                this.vehicle.setMountedState(true, this);
                 return true;
             }
         }
@@ -191,7 +194,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         if(this.z != CM.GroundLevel) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
- 
+        
         this.vehicle = null;
         return v;
     }

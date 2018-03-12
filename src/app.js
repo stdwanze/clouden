@@ -13,6 +13,7 @@ CM.CloudEngine=    class CloudEngine{
             this.keys = {};
             this.speed = 3;
             this.osd = new CM.OSD(this.renderer,this.imagerepo);
+            this.over = false;
            
         }
 
@@ -23,48 +24,54 @@ CM.CloudEngine=    class CloudEngine{
         }
         tickndraw(){
 
-            // update renderer
-            this.renderer.setZoom(this.player.z);
-            this.renderer.clear(); 
-            this.renderer.updatePos(this.player.position);
-        
+            if(!this.over){
+                // update renderer
+                this.renderer.setZoom(this.player.z);
+                this.renderer.clear(); 
+                this.renderer.updatePos(this.player.position);
+            
 
-            // interacte player with world
-            this.tryCollect();
+                // interacte player with world
+                this.tryCollect();
 
-            // draw world
-            this.world.getScene(this.player.position).forEach(element => {
-                this.renderer.draw(element);
-            });
+                // draw world
+                this.world.getScene(this.player.position).forEach(element => {
+                    this.renderer.draw(element);
+                });
 
 
-            // draw movableobjects
-            this.world.getObjects().forEach(element =>
-            {
-                element.tick(this.player);
-                if(this.player.z >= element.z+0.3)
+                // draw movableobjects
+                this.world.getObjects().forEach(element =>
                 {
-                    this.renderer.lighter()
+                    element.tick(this.player);
+                    if(this.player.z >= element.z+0.3)
+                    {
+                        this.renderer.lighter()
+                    }
+                    this.renderer.draw(element);
+                    this.renderer.restore();
+                });
+
+                //draw Player
+                this.player.tick();
+                this.renderer.draw(this.player);
+                
+               
+                
+
+                var playerScores = this.player.getScores().getAll();
+                this.osd.displayScores( playerScores,"BOTTOM-LEFT");
+
+                if(this.player.isMounted()){
+                    var vScores = this.player.getMountScores().getAll();
+                    this.osd.displayScores(vScores,"BOTTOM-RIGHT");
                 }
-                this.renderer.draw(element);
-                this.renderer.restore();
-            });
-
-            //draw Player
-            this.player.tick();
-            this.renderer.draw(this.player);
-            
-            this.osdocu.draw(this.renderer); //, this.player.position);
-            
-
-            var playerScores = this.player.getScores().getAll();
-            this.osd.displayScores( playerScores,"BOTTOM-LEFT");
-
-            if(this.player.isMounted()){
-                var vScores = this.player.getMountScores().getAll();
-                this.osd.displayScores(vScores,"BOTTOM-RIGHT");
             }
-            
+            else
+            {
+                this.renderer.fillText("GAME OVER",this.player.position.x,this.player.position.y, 50);
+            }
+            this.osdocu.draw(this.renderer); //, this.player.position);
             var self = this;
             // register next
             //if (this.run && this.stillrun()) {
@@ -131,6 +138,9 @@ CM.CloudEngine=    class CloudEngine{
                 this.player.stop();
             }
         }
+        gameOver(){
+            this.over = true;
+        }
         init(){
 
                 this.world.setChunksCachedCallback(CM.ADDENEMYMAKER(this.world,this.imagerepo));
@@ -139,7 +149,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 this.player.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
-                this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10));
+                this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10,0.2));
                 this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
                 
                 var dragon = new CM.Dragon(new CM.Point( 150,150),this.imagerepo.getImage("dragon_small"));
@@ -150,6 +160,9 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.addHitable("player", this.player);
                 this.world.addHitable("dragon1", dragon);
                 
+
+                
+                CM.VEHICLEDEATHMAKER(this,this.world,this.player);
 
                 window.requestAnimFrame = (function(callback) {
                     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||

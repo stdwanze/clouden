@@ -320,3 +320,32 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
         }
     }
 }
+CM.VEHICLEDEATHMAKER = function (app, world, player)
+{
+    CM.VEHICLEDEATH =  function (vehicle)
+    {
+        function down (){
+            player.descend(0.01);
+            if(player.z != CM.GroundLevel)
+            {
+                setTimeout(down,20);
+            }
+            else
+            {
+                player.dismount();
+                if(!world.getChunk(player.position).getTile(player.position).isLand())
+                {
+                    app.gameOver();
+                }
+            }
+        }
+
+        player.getMountScores().get("FUEL").reduce(4000);
+        down();
+
+    }
+    CM.PLAYERDEATH = function (player)
+    {
+        app.gameOver();
+    }
+}

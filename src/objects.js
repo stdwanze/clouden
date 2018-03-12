@@ -201,12 +201,20 @@ CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
       this.mountedState = false;
    //   this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
       this.interactable = true;
+      this.mountedGuest = null;
     
     }
-    setMountedState(val)
+    setMountedState(val, guest)
     {
         this.mountedState = val;
         this.setStatic( val);
+        if(val) this.mountedGuest = guest;
+        else this.mountedGuest = null;
+    }
+    getDirection(){
+        var direction = new CM.Point(3,0);
+        if(this.mountedGuest !=null) direction = this.mountedGuest.getMovementDirection();
+        return direction;
     }
    
     draw(renderer)
@@ -231,13 +239,41 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
         this.scores.add(new CM.Health(30));
         
         this.consumptionEfficiancy = 0.01;
-        this.wind = new CM.Point(-0.01,0);
+        this.wind = new CM.Point(-0.01,0); //new CM.Point(0,0); 
         this.hitmanager = new CM.Hitable();
+        this.dead = false;
+
+       
+    }
+   
+
+    drawGun(renderer)
+    {
+        if( this.mountedState ){
+            var direction = this.getDirection();
+            var start = this.getMidPoint();
+
+            var sizex = direction.x;
+            var sizey = direction.y;
+            sizex >= 0 ? start.move(-1,-1) : start.move(0,-1);
+            if(direction.x == 0) sizex = 1;
+            if(direction.y == 0) sizey = 1;
+            if(direction.y > 3) sizey = 3;
+            if(direction.x > 3) sizex = 3;
+            
+            renderer.drawRectangleZ(start.x,start.y,sizex*1.5, sizey*1.5, "#59616d",3);
+        }
     }
     draw(renderer)
     {
         super.draw(renderer);
+       
+        this.drawGun(renderer);
+        
+        
         this.hitmanager.draw(this,renderer);
+
+
     }
     tick(player)
     {
@@ -248,7 +284,7 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
             {
                 if(player != null){
                     player.move(this.wind.x, this.wind.y);
-                    this.move(this.wind.x, this.wind.y);
+                //    this.move(this.wind.x, this.wind.y);
                 }
             }
             else{
@@ -276,6 +312,11 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
     {
         this.scores.get("HEALTH").reduce(strength);
         this.hitmanager.hit();
+        if(this.scores.get("HEALTH").getScore() == 0 && !this.dead) 
+        {
+            this.dead = true;
+            CM.VEHICLEDEATH(this);
+        }
     }
 }  
 
