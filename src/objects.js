@@ -312,9 +312,11 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
     {
         this.scores.get("HEALTH").reduce(strength);
         this.hitmanager.hit();
-        if(this.scores.get("HEALTH").getScore() == 0 && !this.dead) 
+        CM.Sound.play('hit');
+        if(this.scores.get("HEALTH").getScore() == 0 && !this.dead)
         {
             this.dead = true;
+            CM.Sound.play('die');
             CM.VEHICLEDEATH(this);
         }
     }

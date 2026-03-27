@@ -20,6 +20,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     hit(strength)
     {
         this.hitmanager.hit();
+        CM.Sound.play('enemy_hit');
         var healthBar = this.scores.get("HEALTH");
         healthBar.reduce(strength);
        
@@ -43,6 +44,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
                 {
                     this.cooldown = 120;
                     this.spit(this.position,this.z, "DRAGONFIRE",new CM.Point(movement.x*3,movement.y*3), this.id);
+                    CM.Sound.play('enemy_shoot');
                 }
                 else
                 {

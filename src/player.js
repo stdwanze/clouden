@@ -45,6 +45,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
             this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source );
             ammoScore.reduce();
+            CM.Sound.play(this.isMounted() ? 'shoot_blimp' : 'shoot');
         }
     }   
     hit(strength)
@@ -53,10 +54,12 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         else{
 
             this.getScores().get("HEALTH").reduce(strength);
+            CM.Sound.play('hit');
 
-            if(this.getScores().get("HEALTH").getScore() == 0 && !this.dead) 
+            if(this.getScores().get("HEALTH").getScore() == 0 && !this.dead)
             {
                 this.dead = true;
+                CM.Sound.play('die');
                 CM.PLAYERDEATH(this);
             }
         }
@@ -133,7 +136,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     move(x,y)
     {   
 
-        if(Math.abs(x) >1 || Math.abs(y) > 1) this.direction = new CM.Point(x,y);
+        if(x !== 0 || y !== 0) this.direction = new CM.Point(x,y);
 
         if(this.isMounted())
         {

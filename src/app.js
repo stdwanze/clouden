@@ -69,6 +69,7 @@ CM.CloudEngine=    class CloudEngine{
                 if(this.player.isMounted()){
                     var vScores = this.player.getMountScores().getAll();
                     this.osd.displayScores(vScores,"BOTTOM-RIGHT");
+                    CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
                 }
             }
             else
@@ -106,7 +107,7 @@ CM.CloudEngine=    class CloudEngine{
             var obj =this.world.getNearestObject(this.player.position,"collectable");
             if(obj == null) return;
             var collected = this.player.collect(obj);
-            if(collected) this.world.removeObject(obj);
+            if(collected) { this.world.removeObject(obj); CM.Sound.play('collect'); }
         }
         handleInteractions(k){
 
@@ -115,25 +116,29 @@ CM.CloudEngine=    class CloudEngine{
                 case "65" : this.player.ascend(0.01); break;
                 case "83" : this.player.descend(0.01); break;
                 case "66" : {
-                    this.player.isMounted() ? this.player.dismount() : this.tryMount();
+                    if (this.player.isMounted()) { this.player.dismount(); CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); }
+                    else { this.tryMount(); CM.Sound.play('mount'); CM.Sound.play('blimp_hum'); }
                     break;
                 }
                 case "67" : this.player.fire(); break;
+                case "77" : CM.Sound.toggleMute(); break;
 
             }
         }
         handleMove(k,currentlyPressed)
         {
-          
+            var moving = false;
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
                 {
-                    case "37" : this.moveRight(); break;
-                    case "38" : this.moveUp(); break;
-                    case "39" : this.moveLeft(); break;
-                    case "40": this.moveDown(); break;	
+                    case "37" : this.moveRight(); moving = true; break;
+                    case "38" : this.moveUp();    moving = true; break;
+                    case "39" : this.moveLeft();  moving = true; break;
+                    case "40" : this.moveDown();  moving = true; break;
                 }
             });
+            if (moving && !this.player.isMounted()) CM.Sound.footstep();
+            else if (!moving) CM.Sound.resetFootstep();
         }
         handleStop(k, currentlyPressed)
         {
