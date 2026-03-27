@@ -67,6 +67,14 @@ CM.Renderer = class Renderer {
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
         this.ctxt.drawImage(image,worldX,worldY,sizex*z*scalingfactor, sizey*z*scalingfactor);
     }
+    drawTile(image,x1,y1,sizex,sizey)
+    {
+        var worldX = Math.round(this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2));
+        var worldY = Math.round(this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2));
+        this.ctxt.imageSmoothingEnabled = false;
+        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom, sizey*this.zoom);
+        this.ctxt.imageSmoothingEnabled = true;
+    }
     drawImage(image,x1,y1,sizex,sizey, scalingfactor)
     {
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
@@ -96,6 +104,19 @@ CM.Renderer = class Renderer {
     {
         this.ctxt.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+    drawWaterBackground(image)
+    {
+        const tileSize = Math.round(32 * this.zoom);
+        const originX = Math.round(this.translateAndZoom(-this.viewport.x, this.canvas.width / 2));
+        const originY = Math.round(this.translateAndZoom(-this.viewport.y, this.canvas.height / 2));
+        const offX = ((originX % tileSize) + tileSize) % tileSize;
+        const offY = ((originY % tileSize) + tileSize) % tileSize;
+        for (let x = offX - tileSize; x < this.canvas.width; x += tileSize) {
+            for (let y = offY - tileSize; y < this.canvas.height; y += tileSize) {
+                this.ctxt.drawImage(image, x, y, tileSize, tileSize);
+            }
+        }
+    }
     setZoom(zoom)
     {
         this.zoom = zoom;
@@ -107,8 +128,15 @@ CM.Renderer = class Renderer {
         this.ctxt.font = size+ "px Ariel black";
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2,3);
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2,3);
-       
+
         this.ctxt.fillText(text,worldX,worldY);
         this.ctxt.restore();
+    }
+    fillTextStatic(text,x,y,size)
+    {
+        if(size == undefined) size = 20;
+        this.ctxt.fillStyle = "#24272b";
+        this.ctxt.font = size + "px Ariel black";
+        this.ctxt.fillText(text,x,y);
     }
 }

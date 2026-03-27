@@ -27,11 +27,8 @@ CM.TileSprite = class TileSprite {
     }
     draw(renderer)
     {
-       this.sprite.draw(renderer);
+       renderer.drawTile(this.image, this.location.x, this.location.y, this.size, this.size);
 
-        // if(this.info.chunkborder)
-        // {renderer.drawRectangle(this.location.x+10, this.location.y+10, 3,3,this.info.color);}
-    // renderer.drawImage(this.image, this.location.x,this.location.y,this.size,this.size,1);
             if(this.isLand()){
         //     if(this.info.borderTop) renderer.drawRectangle(this.location.x+10, this.location.y, 2,2,"#FF0000");
         //     if(this.info.borderDown) renderer.drawRectangle(this.location.x+10, this.location.y+this.size-2, 2,2,"#0000FF");
@@ -157,7 +154,8 @@ CM.World = class World{
         return this.getChunkByIndeces(x,y);
     }
     getChunkByIndeces(x,y)
-    { 
+    {
+        if(x < 0 || y < 0 || x >= this.sizeX || y >= this.sizeY) return null;
         return this.world[y][x];
     }
 
@@ -213,7 +211,7 @@ CM.World = class World{
     {
         var x1 = x+offsetx;
         var y1 = y+offsety;
-        if(x1 >= 0 && y1 >= 0) holder.tiles = holder.tiles.concat(this.getTiles(x1,y1));
+        if(x1 >= 0 && y1 >= 0 && x1 < this.sizeX && y1 < this.sizeY) holder.tiles = holder.tiles.concat(this.getTiles(x1,y1));
      
     }
     getTiles(x,y)

@@ -11,7 +11,7 @@ CM.CloudEngine=    class CloudEngine{
             this.renderer = renderer;
             this.player = null ;
             this.keys = {};
-            this.speed = 3;
+            this.speed = 1;
             this.osd = new CM.OSD(this.renderer,this.imagerepo);
             this.over = false;
            
@@ -27,9 +27,13 @@ CM.CloudEngine=    class CloudEngine{
             if(!this.over){
                 // update renderer
                 this.renderer.setZoom(this.player.z);
-                this.renderer.clear(); 
+                this.renderer.clear();
                 this.renderer.updatePos(this.player.position);
+                this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
             
+
+                // handle movement every frame for smooth input
+                this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
 
                 // interacte player with world
                 this.tryCollect();
@@ -171,10 +175,10 @@ CM.CloudEngine=    class CloudEngine{
                     };
                 })();
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
-                this.inputHandler.on("arrowKeys",this.handleMove.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
 
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100));
+                document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
 
 
         }

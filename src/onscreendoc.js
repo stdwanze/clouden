@@ -5,30 +5,34 @@ CM.OnScreenDocu = class OnScreenDoc{
     constructor( cornerstone)
     {
         this.corner = cornerstone;
+        this.visible = false;
     }
 
-    draw(renderer, pos)
+    toggle()
     {
-        var textLine1 = "move with the arrow keys";
-        var textLine2 = "board the blimp with c-key";
-        var textLine3 = "ascend/descend with a and s key";
-        var textLine4 = "fire with c-key";
-        var textLine5 = "collect ammo, health and coins";
-        var textLine6 = "collect fuel (yellow) with the blimp";
-        
-        var line = 10;
-        renderer.fillText("How to play:",this.corner.x, this.corner.y+(line*1),30);
-      
-        renderer.fillText(textLine1,this.corner.x, this.corner.y+(line*2));
-        renderer.fillText(textLine2,this.corner.x, this.corner.y+(line*3));
-        renderer.fillText(textLine3,this.corner.x, this.corner.y+(line*4));
-        renderer.fillText(textLine4,this.corner.x, this.corner.y+(line*5));
-        renderer.fillText(textLine5,this.corner.x, this.corner.y+(line*6));
-        renderer.fillText(textLine6,this.corner.x, this.corner.y+(line*7));
-        
-        renderer.fillText("-- cloud adventurer --", this.corner.x+200, this.corner.y, 40);
-        
-        
-        
+        this.visible = !this.visible;
+    }
+
+    draw(renderer)
+    {
+        if (!this.visible) return;
+
+        var panelW = 420;
+        var panelH = 210;
+        var panelX = (renderer.getScreenWidth() - panelW) / 2;
+        var panelY = 10;
+        var textX = panelX + 20;
+        var line = 22;
+
+        renderer.drawRectangleStatic(panelX, panelY, panelW, panelH, "white");
+
+        renderer.fillTextStatic("-- cloud adventurer --", textX, panelY + 30, 28);
+        renderer.fillTextStatic("How to play:", textX, panelY + 30 + line, 18);
+        renderer.fillTextStatic("move with the arrow keys", textX, panelY + 30 + line*2);
+        renderer.fillTextStatic("board the blimp with b-key", textX, panelY + 30 + line*3);
+        renderer.fillTextStatic("ascend/descend with a and s key", textX, panelY + 30 + line*4);
+        renderer.fillTextStatic("fire with c-key", textX, panelY + 30 + line*5);
+        renderer.fillTextStatic("collect ammo, health and coins", textX, panelY + 30 + line*6);
+        renderer.fillTextStatic("collect fuel (yellow) with the blimp", textX, panelY + 30 + line*7);
     }
 }

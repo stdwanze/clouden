@@ -118,7 +118,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
          var newPos = this.getBoundingPos(x,y); //this.position.clone();
          newPos.move(x,y);
          var tileInfo = this.tileInfoRetriever(newPos);
-         if(!tileInfo.isLand())return false;
+         if(!tileInfo || !tileInfo.isLand()) return false;
          else return true;
       
     }
