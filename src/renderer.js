@@ -71,8 +71,10 @@ CM.Renderer = class Renderer {
     {
         var worldX = Math.round(this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2));
         var worldY = Math.round(this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2));
+        var worldX2 = Math.round(this.translateAndZoom(x1+sizex-this.viewport.x,this.canvas.width/2));
+        var worldY2 = Math.round(this.translateAndZoom(y1+sizey-this.viewport.y,this.canvas.height/2));
         this.ctxt.imageSmoothingEnabled = false;
-        this.ctxt.drawImage(image,worldX,worldY,sizex*this.zoom, sizey*this.zoom);
+        this.ctxt.drawImage(image,worldX,worldY,worldX2-worldX,worldY2-worldY);
         this.ctxt.imageSmoothingEnabled = true;
     }
     drawImage(image,x1,y1,sizex,sizey, scalingfactor)

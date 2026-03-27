@@ -182,7 +182,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
 
-                this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100));
+                this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
 
 
