@@ -29,7 +29,11 @@ CM.Sound = (function() {
         define('enemy_shoot',['snd/enemy_shoot.ogg'],  { volume: 0.5 });
         define('enemy_hit',  ['snd/enemy_hit.ogg'],   { volume: 0.9 });
         define('enemy_idle', ['snd/enemy_idle.ogg'],  { volume: 0.7, loop: true });
+        define('crab_idle',  ['snd/crab_idle.ogg'],   { volume: 0.5, loop: true });
+        define('crab_attack',['snd/crab_attack.ogg'], { volume: 0.8 });
         define('music',      ['snd/music.ogg'],       { volume: 0.15, loop: true });
+        define('mine_wood',  ['snd/mine_wood.wav'],   { volume: 0.7 });
+        define('mine_stone', ['snd/mine_stone.wav'],  { volume: 0.8 });
     }
 
     function play(name) {
