@@ -99,7 +99,16 @@ CM.InputHandler = class InputHandler{
                 this.keyLetterListeneres.forEach(element => {
                     element(keycode,currentlyPressed);
                 });
-            } 
+            } else {
+                currentlyPressed.forEach(function(entry) {
+                    var heldKey = parseInt(entry[0]);
+                    if(this.inrange(heldKey,65,90)){
+                        this.keyLetterListeneres.forEach(element => {
+                            element(heldKey,currentlyPressed);
+                        });
+                    }
+                }.bind(this));
+            }
         }
     }
     inrange(key,lower,upper)
