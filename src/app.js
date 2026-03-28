@@ -16,6 +16,8 @@ CM.CloudEngine=    class CloudEngine{
             this.over = false;
             this.paused = false;
             this.inventory = new CM.Inventory(this.imagerepo);
+            this.notification = '';
+            this.notificationFrames = 0;
            
         }
 
@@ -90,6 +92,14 @@ CM.CloudEngine=    class CloudEngine{
 
             this.inventory.draw(this.renderer);
             this.osdocu.draw(this.renderer);
+            if (this.notificationFrames > 0) {
+                var alpha = Math.min(1, this.notificationFrames / 20);
+                var nx = Math.floor(this.renderer.getScreenWidth() / 2) - 80;
+                var ny = 40;
+                this.renderer.drawRectangleStatic(nx - 10, ny - 20, 190, 30, 'rgba(0,0,0,' + (alpha * 0.6) + ')');
+                this.renderer.fillTextStaticColor(this.notification, nx, ny, 16, 'rgba(200,240,200,' + alpha + ')');
+                this.notificationFrames--;
+            }
             requestAnimFrame( function() {
                 self.tickndraw();
             });
@@ -140,6 +150,7 @@ CM.CloudEngine=    class CloudEngine{
                 case "67" : this.player.fire(); break;
                 case "69" : this.tryMine(); break;
                 case "73" : this.inventory.toggle(); this.paused = this.inventory.isOpen(); break;
+                case "76" : CM.SaveLoad.save(this); this.notify('Gespeichert!'); break;
                 case "77" : CM.Sound.toggleMute(); break;
 
             }
@@ -165,6 +176,10 @@ CM.CloudEngine=    class CloudEngine{
             {
                 this.player.stop();
             }
+        }
+        notify(text) {
+            this.notification = text;
+            this.notificationFrames = 120;
         }
         gameOver(){
             this.over = true;
@@ -201,9 +216,17 @@ CM.CloudEngine=    class CloudEngine{
                 })();
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
+                this.inputHandler.on("keydown", (k) => {
+                    if ("" + k === "186") { // Ö on German keyboard
+                        CM.SaveLoad.clear();
+                        this.notify('Spielstand gelöscht');
+                    }
+                });
 
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
+
+                if (CM.SaveLoad.load(this)) this.notify('Spielstand geladen');
 
 
         }

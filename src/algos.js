@@ -112,7 +112,7 @@ CM.BuildWorld = function (tilewidth){
             probabilityModifier = (tileArray[i-1]+tileArray[i-mapWidth]+tileArray[i-mapWidth+1])*(19+(landMassSize*1.4));
         }
 
-        rndm=(Math.random()*101);
+        rndm=(CM.rng()*101);
         tileArray[i]=(rndm<(probability+probabilityModifier));
         if(borderDetected) tileArray[i] = false;
     }
@@ -159,7 +159,7 @@ CM.AnnotateWorld = function (tileArray, widthInTiles, color)
             isDiff(tileArray[i],get(-1,i,tileArray)),
             isDiff(tileArray[i],get(1,i,tileArray)),
             isDiff(tileArray[i],get(widthInTiles,i,tileArray)),
-            Math.random() > 0.8 &&  tileArray[i] ? true: false,
+            CM.rng() > 0.8 &&  tileArray[i] ? true: false,
             chunkBorderArea,
             color
         );
@@ -171,7 +171,7 @@ CM.AnnotateWorld = function (tileArray, widthInTiles, color)
 CM.TILECREATOR = function (imagerepo,widthInTiles)
 {
 
-    var index = Math.floor(Math.random()*10);
+    var index = Math.floor(CM.rng()*10);
     var color = [ "#F00000", "0F0000", "#00F000", "#000F00", "#0000F0", "#00000F", "#FF0000", "00FF00", "0000FF", "#FFFF00", "#FFFFFF", "#000000"];
     var array = CM.BuildWorld(widthInTiles);
     array = CM.AnnotateWorld(array, widthInTiles, color[index]);
@@ -203,8 +203,8 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
             if(info.borderLeft) ts.addBorder(imagerepo.getImage("border_land_water_left"), new CM.Point(0,0));
             if(info.borderRight) ts.addBorder(imagerepo.getImage("border_land_water_right"), new CM.Point(26,0));
 
-            var num = Math.random() >0.5? "1": "2";
-            if(info.decals) ts.addDecals(imagerepo.getImage("decal_land_vegetation_"+num), new CM.Point(2+Math.floor(Math.random()*10),2+Math.floor(Math.random()*10)));
+            var num = CM.rng() >0.5? "1": "2";
+            if(info.decals) ts.addDecals(imagerepo.getImage("decal_land_vegetation_"+num), new CM.Point(2+Math.floor(CM.rng()*10),2+Math.floor(CM.rng()*10)));
         }
 
         return ts;
@@ -229,7 +229,7 @@ CM.CLOUDGEN = function (world,repo){
                         console.log("reset");
                     } 
                     };
-                }(startPos, Math.random()*5));
+                }(startPos, CM.rng()*5));
             return c;
         }
 }
@@ -251,7 +251,7 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
         var c = world.getChunkByIndeces(x1, y1);
         var landTiles = c.getTiles().filter(function(t) { return t.isLand(); });
         if (landTiles.length == 0) return;
-        var tile = landTiles[Math.floor(Math.random() * landTiles.length)];
+        var tile = landTiles[Math.floor(CM.rng() * landTiles.length)];
 
         var enemy = new CM.GroundEnemy(tile.location.clone(), imagerepo.getImage("crab"));
         enemy.setTileInfoRetriever(CM.TILEACCESS(world));
@@ -270,8 +270,8 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
             if(dragon == undefined)
             {
                 var locbase = c.locationbase.clone();
-                var xOffset = Math.random()*c.tilesize*c.widthInTiles;
-                var yOffSet =Math.random()*c.tilesize*c.widthInTiles;
+                var xOffset = CM.rng()*c.tilesize*c.widthInTiles;
+                var yOffSet =CM.rng()*c.tilesize*c.widthInTiles;
                 makeDragon(locbase.move(xOffset,yOffSet),""+x1+"_"+y1+"_"+i)
             }
             var ge = world.getHitablesByKey("groundenemy"+x1+"_"+y1+"_"+i);
@@ -313,9 +313,9 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
     return function (tile){
         if(tile.isLand())
         {
-            if(Math.random() < 0.05)
+            if(CM.rng() < 0.05)
             {
-                var rand = Math.random() ;
+                var rand = CM.rng() ;
                 if(rand > 0.75)
                 {
                     world.addObject( new CM.Collectable(tile.location.clone().move(20,20),imagerepo.getImage("ammo_10"),"AMMO",10,0.4));
@@ -342,7 +342,7 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
 CM.MINEABLEMAKER = function (world, imagerepo) {
     return function (tile) {
         if (!tile.isLand()) return;
-        var rand = Math.random();
+        var rand = CM.rng();
         if (rand < 0.05) {
             var rock = new CM.Mineable(tile.location.clone(), 'STONE', imagerepo.getImage('mineable_rock'));
             rock.setRemover(world.removeObject.bind(world));

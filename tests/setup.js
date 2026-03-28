@@ -47,3 +47,4 @@ require('../src/app');
 require('../src/renderer');
 require('../src/onscreendoc');
 require('../src/utils');
+require('../src/saveload');
