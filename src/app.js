@@ -94,9 +94,9 @@ CM.CloudEngine=    class CloudEngine{
             this.osdocu.draw(this.renderer);
             if (this.notificationFrames > 0) {
                 var alpha = Math.min(1, this.notificationFrames / 20);
-                var nx = Math.floor(this.renderer.getScreenWidth() / 2) - 80;
+                var nx = Math.floor(this.renderer.getScreenWidth() / 2) - 120;
                 var ny = 40;
-                this.renderer.drawRectangleStatic(nx - 10, ny - 20, 190, 30, 'rgba(0,0,0,' + (alpha * 0.6) + ')');
+                this.renderer.drawRectangleStatic(nx - 10, ny - 20, 260, 30, 'rgba(0,0,0,' + (alpha * 0.6) + ')');
                 this.renderer.fillTextStaticColor(this.notification, nx, ny, 16, 'rgba(200,240,200,' + alpha + ')');
                 this.notificationFrames--;
             }
@@ -150,7 +150,7 @@ CM.CloudEngine=    class CloudEngine{
                 case "67" : this.player.fire(); break;
                 case "69" : this.tryMine(); break;
                 case "73" : this.inventory.toggle(); this.paused = this.inventory.isOpen(); break;
-                case "76" : CM.SaveLoad.save(this); this.notify('Gespeichert!'); if (window.updateSaveIndicator) window.updateSaveIndicator(); break;
+                case "76" : this.tryBuildBlockhut(); break;
                 case "77" : CM.Sound.toggleMute(); break;
 
             }
@@ -176,6 +176,30 @@ CM.CloudEngine=    class CloudEngine{
             {
                 this.player.stop();
             }
+        }
+        tryBuildBlockhut() {
+            var slots = this.inventory.slots;
+            var wi = -1, si = -1;
+            for (var i = 0; i < slots.length; i++) {
+                if (slots[i] && slots[i].type === 'WOOD'  && wi < 0) wi = i;
+                if (slots[i] && slots[i].type === 'STONE' && si < 0) si = i;
+            }
+            if (wi < 0 || slots[wi].count < 6 || si < 0 || slots[si].count < 3) {
+                var missing = [];
+                if (wi < 0 || slots[wi].count < 6)  missing.push('6 Holz');
+                if (si < 0 || slots[si].count < 3) missing.push('3 Stein');
+                this.notify('Ben\u00f6tigt: ' + missing.join(' + '));
+                return;
+            }
+            slots[wi].count -= 6;
+            if (slots[wi].count === 0) slots[wi] = null;
+            slots[si].count -= 3;
+            if (slots[si].count === 0) slots[si] = null;
+
+            this.world.addObject(new CM.Blockhut(this.player.position.clone()));
+            CM.SaveLoad.save(this);
+            if (window.updateSaveIndicator) window.updateSaveIndicator();
+            this.notify('Blockh\u00fctte gebaut!');
         }
         notify(text) {
             this.notification = text;

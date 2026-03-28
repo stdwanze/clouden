@@ -39,6 +39,7 @@ require('../src/objects');
 require('../src/osd');
 require('../src/inventory');
 require('../src/mineable');
+require('../src/blockhut');
 require('../src/player');
 require('../src/enemy');
 require('../src/algos');

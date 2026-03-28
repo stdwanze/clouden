@@ -37,9 +37,12 @@ CM.SaveLoad = (function() {
         var mineables = [];
         var collectables = [];
         var blimps = [];
+        var blockhuts = [];
 
         engine.world.getObjects().forEach(function(obj) {
-            if (obj.mineable) {
+            if (obj.isSafePoint) {
+                blockhuts.push({ x: obj.position.x, y: obj.position.y });
+            } else if (obj.mineable) {
                 mineables.push({
                     x: obj.position.x, y: obj.position.y,
                     resourceType: obj.resourceType,
@@ -74,7 +77,8 @@ CM.SaveLoad = (function() {
             inventory:    engine.inventory.slots,
             mineables:    mineables,
             collectables: collectables,
-            blimps:       blimps
+            blimps:       blimps,
+            blockhuts:    blockhuts
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -139,6 +143,12 @@ CM.SaveLoad = (function() {
             blimp.scores.get('AMMO').score   = b.ammo;
             blimp.scores.get('HEALTH').score = b.health;
             engine.world.addObject(blimp);
+        });
+
+        // --- Blockhuts ---
+        engine.world.objects = engine.world.objects.filter(function(o) { return !o.isSafePoint; });
+        (state.blockhuts || []).forEach(function(b) {
+            engine.world.addObject(new CM.Blockhut(new CM.Point(b.x, b.y)));
         });
 
         return true;
