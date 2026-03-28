@@ -60,68 +60,71 @@ describe('CM.InputHandler', () => {
     handler = new CM.InputHandler();
   });
 
-  // NOTE: utils.js:93 contains a known bug — it reads the undeclared global `event`
-  // instead of the `keycode` parameter inside notifiy(). Because of this, calling
-  // handler.keydown() / handler.keyup() directly crashes when any listeners are
-  // registered. The tests below work around this by either using no listeners or
-  // by directly manipulating the internal state where the bug would be triggered.
-
   test('calcCurrentlyPressed returns empty array initially', () => {
     expect(handler.calcCurrentlyPressed()).toEqual([]);
   });
 
-  test('currentKeys is set to true on keydown', () => {
-    // Bypass notifiy() to avoid the event-global bug — set state directly
-    handler.currentKeys[37] = true;
+  test('keydown marks key as pressed', () => {
+    handler.keydown({ keyCode: 37 });
     const pressed = handler.calcCurrentlyPressed();
     expect(pressed.length).toBe(1);
     expect(pressed[0][0]).toBe('37');
     expect(pressed[0][1]).toBe(true);
   });
 
-  test('calcCurrentlyPressed excludes unpressed keys', () => {
-    handler.currentKeys[37] = true;
-    handler.currentKeys[38] = false;
-    const pressed = handler.calcCurrentlyPressed();
-    expect(pressed.length).toBe(1);
+  test('keyup marks key as not pressed', () => {
+    handler.keydown({ keyCode: 37 });
+    handler.keyup({ keyCode: 37 });
+    expect(handler.calcCurrentlyPressed()).toEqual([]);
   });
 
-  test('multiple keys can be tracked as pressed', () => {
-    handler.currentKeys[37] = true;
-    handler.currentKeys[39] = true;
+  test('multiple keys can be tracked simultaneously', () => {
+    handler.keydown({ keyCode: 37 });
+    handler.keydown({ keyCode: 39 });
     expect(handler.calcCurrentlyPressed().length).toBe(2);
   });
 
-  test('on() registers keyup listener in keyUpListeners', () => {
+  test('on() registers keyup listener and fires it on keyup', () => {
     const fn = jest.fn();
     handler.on('keyup', fn);
-    expect(handler.keyUpListeners).toContain(fn);
+    handler.keydown({ keyCode: 38 });
+    handler.keyup({ keyCode: 38 });
+    expect(fn).toHaveBeenCalledWith(null, expect.any(Array));
   });
 
-  test('on() registers keydown listener in keyDownListeners', () => {
+  test('on() registers keydown listener and fires it on keydown', () => {
     const fn = jest.fn();
     handler.on('keydown', fn);
-    expect(handler.keyDownListeners).toContain(fn);
+    handler.keydown({ keyCode: 65 });
+    expect(fn).toHaveBeenCalledWith(65, expect.any(Array));
   });
 
-  test('on() registers arrowKeys listener', () => {
+  test('on() registers arrowKeys listener and fires for arrow keycodes', () => {
     const fn = jest.fn();
     handler.on('arrowKeys', fn);
-    expect(handler.keyArrowListeners).toContain(fn);
+    handler.keydown({ keyCode: 38 }); // up arrow
+    expect(fn).toHaveBeenCalled();
   });
 
-  test('on() registers letterKeys listener', () => {
+  test('arrowKeys listener does not fire for non-arrow keys', () => {
+    const fn = jest.fn();
+    handler.on('arrowKeys', fn);
+    handler.keydown({ keyCode: 65 }); // 'A'
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  test('on() registers letterKeys listener and fires for letter keycodes', () => {
     const fn = jest.fn();
     handler.on('letterKeys', fn);
-    expect(handler.keyLetterListeneres).toContain(fn);
+    handler.keydown({ keyCode: 67 }); // 'C'
+    expect(fn).toHaveBeenCalled();
   });
 
-  test('keyup sets key to false in currentKeys', () => {
-    // Directly set state, then call keyup which only sets currentKeys[keyCode]=false
-    // keyup calls notifiy(null) which takes the null-branch (no event.keyCode access)
-    handler.currentKeys[38] = true;
-    handler.keyup({ keyCode: 38 });
-    expect(handler.currentKeys[38]).toBe(false);
+  test('letterKeys listener does not fire for arrow keys', () => {
+    const fn = jest.fn();
+    handler.on('letterKeys', fn);
+    handler.keydown({ keyCode: 37 }); // left arrow
+    expect(fn).not.toHaveBeenCalled();
   });
 
   test('inrange returns true for boundary values', () => {

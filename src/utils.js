@@ -90,12 +90,12 @@ CM.InputHandler = class InputHandler{
                 element(keycode,currentlyPressed);
             });
             
-            if(this.inrange(event.keyCode,37,40)){
+            if(this.inrange(keycode,37,40)){
                 this.keyArrowListeners.forEach(element => {
                     element(keycode,currentlyPressed);
                 });
-            } 
-            if(this.inrange(event.keyCode,65,90)){
+            }
+            if(this.inrange(keycode,65,90)){
                 this.keyLetterListeneres.forEach(element => {
                     element(keycode,currentlyPressed);
                 });

@@ -117,14 +117,10 @@ describe('CM.FireBall', () => {
     expect(fb.rangeExCallback).not.toHaveBeenCalled();
   });
 
-  // NOTE: sourceIds=[] (empty array) never allows hits due to a quirk in the
-  // source condition: (length > 0 && notInList) || (length==undefined && notEqual).
-  // An empty array satisfies neither branch. Use a dummy source ID to opt into
-  // the first branch and test hit detection properly.
   test('hits object within 15px and calls rangeExCallback', () => {
     const fb = new CM.FireBall(
       new CM.Point(0, 0), img(), CM.GroundLevel,
-      1000, new CM.Point(1, 0), 0.1, [0] // dummy source id not matching target
+      1000, new CM.Point(1, 0), 0.1, []
     );
     const onRange = jest.fn();
     fb.registerRangeEx(onRange);
@@ -137,7 +133,7 @@ describe('CM.FireBall', () => {
     expect(onRange).toHaveBeenCalled();
   });
 
-  test('does not hit source object (id is in sourceIds)', () => {
+  test('does not hit source object (same id)', () => {
     const fb = new CM.FireBall(
       new CM.Point(0, 0), img(), CM.GroundLevel,
       1000, new CM.Point(1, 0), 0.1, [42]
