@@ -1,5 +1,10 @@
+const { makeRenderer } = require('./helpers');
+
 const img = () => ({ width: 32, height: 32 });
 const pos = () => new CM.Point(100, 200);
+
+beforeAll(() => jest.spyOn(console, 'log').mockImplementation(() => {}));
+afterAll(() => jest.restoreAllMocks());
 
 describe('CM.CloudObject', () => {
   test('stores position, size, and z', () => {
@@ -143,6 +148,64 @@ describe('CM.FireBall', () => {
     fb.registerGetHitables(() => [source]);
     fb.tick();
     expect(source.hit).not.toHaveBeenCalled();
+  });
+});
+
+describe('CM.Sprite — draw()', () => {
+  test('non-static sprite calls renderer.drawImage', () => {
+    const { renderer, ctx } = makeRenderer();
+    const s = new CM.Sprite(img(), pos(), CM.GroundLevel, false, 1);
+    s.draw(renderer);
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  test('static sprite calls renderer.drawImageZ', () => {
+    const { renderer, ctx } = makeRenderer();
+    const s = new CM.Sprite(img(), pos(), CM.GroundLevel, true, 1);
+    s.draw(renderer);
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+});
+
+describe('CM.TileSprite', () => {
+  const tileImg = () => ({ width: 32, height: 32, src: '' });
+
+  test('isLand() reflects tileInfo.isLand', () => {
+    const info = new CM.TileInfo(true, false, false, false, false, false, false, '#fff');
+    const ts = new CM.TileSprite(new CM.Point(0, 0), 32, tileImg(), info);
+    expect(ts.isLand()).toBe(true);
+  });
+
+  test('addBorder adds to border array', () => {
+    const info = new CM.TileInfo(true, false, false, false, false, false, false, '#fff');
+    const ts = new CM.TileSprite(new CM.Point(0, 0), 32, tileImg(), info);
+    ts.addBorder(tileImg(), new CM.Point(0, 0));
+    expect(ts.border.length).toBe(1);
+  });
+
+  test('addDecals adds to decals array', () => {
+    const info = new CM.TileInfo(true, false, false, false, false, false, false, '#fff');
+    const ts = new CM.TileSprite(new CM.Point(0, 0), 32, tileImg(), info);
+    ts.addDecals(tileImg(), new CM.Point(0, 0));
+    expect(ts.decals.length).toBe(1);
+  });
+
+  test('draw() calls renderer.drawTile', () => {
+    const { renderer, ctx } = makeRenderer();
+    const info = new CM.TileInfo(false, false, false, false, false, false, false, '#fff');
+    const ts = new CM.TileSprite(new CM.Point(0, 0), 32, tileImg(), info);
+    ts.draw(renderer);
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  test('draw() renders border images for land tiles', () => {
+    const { renderer, ctx } = makeRenderer();
+    const info = new CM.TileInfo(true, false, false, false, false, false, false, '#fff');
+    const ts = new CM.TileSprite(new CM.Point(0, 0), 32, tileImg(), info);
+    ts.addBorder(tileImg(), new CM.Point(0, -2));
+    ts.draw(renderer);
+    // drawTile (tile itself) + drawImage (border)
+    expect(ctx.drawImage.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });
 

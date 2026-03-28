@@ -1,4 +1,8 @@
+const { makeRenderer } = require('./helpers');
 const img = () => ({ width: 32, height: 32 });
+
+beforeAll(() => jest.spyOn(console, 'log').mockImplementation(() => {}));
+afterAll(() => jest.restoreAllMocks());
 
 function makeGroundEnemy(px = 50, py = 50) {
   return new CM.GroundEnemy(new CM.Point(px, py), img());

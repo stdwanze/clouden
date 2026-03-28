@@ -1,4 +1,9 @@
+const { makeRenderer } = require('./helpers');
+
 const img = () => ({ width: 32, height: 32 });
+
+beforeAll(() => jest.spyOn(console, 'log').mockImplementation(() => {}));
+afterAll(() => jest.restoreAllMocks());
 
 function makePlayer(px = 100, py = 100) {
   return new CM.CloudPlayer(new CM.Point(px, py), img(), img());
@@ -150,5 +155,128 @@ describe('CM.CloudPlayer — mount/dismount', () => {
     const p = makePlayer(0, 0);
     const blimp = new CM.Blimp(new CM.Point(9999, 9999), img());
     expect(p.mount(blimp)).toBe(false);
+  });
+
+  test('dismount clears vehicle and returns it', () => {
+    const p = makePlayer(0, 0);
+    const blimp = new CM.Blimp(new CM.Point(0, 0), img());
+    p.mount(blimp);
+    p.tileInfoRetriever = () => ({ isLand: () => true });
+    const v = p.dismount();
+    expect(v).toBe(blimp);
+    expect(p.isMounted()).toBe(false);
+  });
+
+  test('dismount returns null when not on land', () => {
+    const p = makePlayer(0, 0);
+    const blimp = new CM.Blimp(new CM.Point(0, 0), img());
+    p.mount(blimp);
+    p.tileInfoRetriever = () => ({ isLand: () => false });
+    expect(p.dismount()).toBeNull();
+    expect(p.isMounted()).toBe(true);
+  });
+});
+
+describe('CM.CloudPlayer — draw()', () => {
+  test('draws sprite when not mounted', () => {
+    const { renderer, ctx } = makeRenderer();
+    const p = makePlayer();
+    p.draw(renderer);
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  test('does not draw sprite when mounted', () => {
+    const { renderer, ctx } = makeRenderer();
+    const p = makePlayer();
+    p.vehicle = { hit: jest.fn(), setMountedState: () => {} };
+    p.draw(renderer);
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+  });
+});
+
+describe('CM.CloudPlayer — fire()', () => {
+  test('calls fireBallMaker and reduces ammo', () => {
+    const p = makePlayer();
+    const fireBallMaker = jest.fn();
+    p.setFireBallCreator(fireBallMaker);
+    p.fire();
+    expect(fireBallMaker).toHaveBeenCalled();
+    expect(p.getScores().get('AMMO').getScore()).toBe(9);
+  });
+
+  test('does not fire when ammo is 0', () => {
+    const p = makePlayer();
+    const fireBallMaker = jest.fn();
+    p.setFireBallCreator(fireBallMaker);
+    p.getScores().get('AMMO').reduce(9999);
+    p.fire();
+    expect(fireBallMaker).not.toHaveBeenCalled();
+  });
+
+  test('fires HANDGUN type when not mounted', () => {
+    const p = makePlayer();
+    const fireBallMaker = jest.fn();
+    p.setFireBallCreator(fireBallMaker);
+    p.fire();
+    expect(fireBallMaker.mock.calls[0][2]).toBe('HANDGUN');
+  });
+});
+
+describe('CM.CloudPlayer — move()', () => {
+  test('updates position when no tile retriever set', () => {
+    const p = makePlayer(100, 100);
+    p.move(5, 0);
+    expect(p.position.x).toBe(105);
+  });
+
+  test('updates direction on non-zero move', () => {
+    const p = makePlayer();
+    p.move(3, 0);
+    expect(p.direction.x).toBe(3);
+  });
+
+  test('switches to left sprite when moving left', () => {
+    const p = makePlayer();
+    p.move(-1, 0);
+    expect(p.sprite).toBe(p.spriteleft);
+  });
+
+  test('switches to right sprite when moving right', () => {
+    const p = makePlayer();
+    p.sprite = p.spriteleft; // start on left
+    p.move(1, 0);
+    expect(p.sprite).toBe(p.spriteright);
+  });
+
+  test('tile retriever blocks movement on non-land', () => {
+    const p = makePlayer(100, 100);
+    p.setTileInfoRetrieve(() => ({ isLand: () => false }));
+    p.move(5, 0);
+    expect(p.position.x).toBe(100); // unchanged
+  });
+});
+
+describe('CM.CloudPlayer — ascend/descend', () => {
+  test('descend increases z', () => {
+    const p = makePlayer();
+    p.z = 2;
+    p.descend(0.1);
+    expect(p.z).toBeCloseTo(2.1);
+  });
+
+  test('descend clamps at GroundLevel', () => {
+    const p = makePlayer();
+    p.z = 2;
+    p.descend(9999);
+    expect(p.z).toBe(CM.GroundLevel);
+  });
+
+  test('ascend decreases z when mounted', () => {
+    const p = makePlayer(0, 0);
+    const blimp = new CM.Blimp(new CM.Point(0, 0), img());
+    p.mount(blimp);
+    const zBefore = p.z;
+    p.ascend(0.1);
+    expect(p.z).toBeLessThan(zBefore);
   });
 });
