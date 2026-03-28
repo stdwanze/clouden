@@ -188,7 +188,7 @@ CM.CloudEngine=    class CloudEngine{
                 var missing = [];
                 if (wi < 0 || slots[wi].count < 6)  missing.push('6 Holz');
                 if (si < 0 || slots[si].count < 3) missing.push('3 Stein');
-                this.notify('Ben\u00f6tigt: ' + missing.join(' + '));
+                this.notify('Ben\u00f6tigt: ' + missing.join(' + '), 180);
                 return;
             }
             slots[wi].count -= 6;
@@ -201,9 +201,9 @@ CM.CloudEngine=    class CloudEngine{
             if (window.updateSaveIndicator) window.updateSaveIndicator();
             this.notify('Blockh\u00fctte gebaut!');
         }
-        notify(text) {
+        notify(text, frames) {
             this.notification = text;
-            this.notificationFrames = 120;
+            this.notificationFrames = frames || 120;
         }
         gameOver(){
             this.over = true;
