@@ -1,9 +1,11 @@
 CM.Sound = (function() {
 
     var sounds = {};
+    var baseVolumes = {};
     var muted = false;
 
     function define(name, src, options) {
+        baseVolumes[name] = options.volume !== undefined ? options.volume : 0.5;
         sounds[name] = new Howl(Object.assign({ src: src, volume: 0.5 }, options));
     }
 
@@ -26,6 +28,7 @@ CM.Sound = (function() {
         define('walk_2',     ['snd/walk_2.ogg'],      { volume: 0.3 });
         define('enemy_shoot',['snd/enemy_shoot.ogg'],  { volume: 0.5 });
         define('enemy_hit',  ['snd/enemy_hit.ogg'],   { volume: 0.9 });
+        define('enemy_idle', ['snd/enemy_idle.ogg'],  { volume: 0.7, loop: true });
         define('music',      ['snd/music.ogg'],       { volume: 0.15, loop: true });
     }
 
@@ -74,6 +77,35 @@ CM.Sound = (function() {
         }
     }
 
+    function playAt(name, dist, maxDist, power) {
+        if (muted) return;
+        var s = sounds[name];
+        if (!s) return;
+        var factor = Math.pow(Math.max(0, 1 - dist / maxDist), power || 1);
+        if (factor <= 0) return;
+        var id = s.play();
+        s.volume(baseVolumes[name] * factor, id);
+    }
+
+    // For looping sounds: call every frame. Returns the current sound id (pass it back next frame).
+    function updateSpatialLoop(name, id, dist, maxDist, power) {
+        var s = sounds[name];
+        if (!s) return null;
+        var factor = Math.pow(Math.max(0, 1 - dist / maxDist), power || 1);
+        var targetVol = baseVolumes[name] * factor;
+        if (muted || factor <= 0) {
+            if (id != null && s.playing(id)) s.stop(id);
+            return null;
+        }
+        if (id == null || !s.playing(id)) {
+            s.volume(targetVol); // set before play so the new instance starts at the right volume
+            id = s.play();
+        } else {
+            s.volume(targetVol, id);
+        }
+        return id;
+    }
+
     function toggleMute() {
         muted = !muted;
         Howler.mute(muted);
@@ -95,6 +127,6 @@ CM.Sound = (function() {
         }
     }
 
-    return { init: init, play: play, stop: stop, footstep: footstep, resetFootstep: resetFootstep, fuelWarning: fuelWarning, toggleMute: toggleMute, startMusic: startMusic };
+    return { init: init, play: play, stop: stop, playAt: playAt, updateSpatialLoop: updateSpatialLoop, footstep: footstep, resetFootstep: resetFootstep, fuelWarning: fuelWarning, toggleMute: toggleMute, startMusic: startMusic };
 
 })();

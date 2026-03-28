@@ -11,6 +11,8 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
         this.speed = 0.1;
         this.cooldown = 0;
         this.hitmanager = new CM.Hitable();
+        this.playerDist = 9999;
+        this.idleSoundId = null;
     }
     
     setFireBallCreator(fireballmaker)
@@ -20,7 +22,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     hit(strength)
     {
         this.hitmanager.hit();
-        CM.Sound.play('enemy_hit');
+        CM.Sound.playAt('enemy_hit', this.playerDist, 300);
         var healthBar = this.scores.get("HEALTH");
         healthBar.reduce(strength);
        
@@ -32,19 +34,21 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     tick(player)
     {
         if(player != null){
-     
-            if(CM.distance(this.position,player.position) < 150)
+            this.playerDist = CM.distance(this.position, player.position);
+            this.idleSoundId = CM.Sound.updateSpatialLoop('enemy_idle', this.idleSoundId, this.playerDist, 250, 2);
+
+            if(this.playerDist < 150)
             {
-     
+
                 var movement = CM.getVector(this.position, player.position, 1);
 
                 super.move(movement.x*this.speed,movement.y*this.speed);
-                
+
                 if(this.spit && this.cooldown == 0)
                 {
                     this.cooldown = 120;
                     this.spit(this.position,this.z, "DRAGONFIRE",new CM.Point(movement.x*3,movement.y*3), this.id);
-                    CM.Sound.play('enemy_shoot');
+                    CM.Sound.playAt('enemy_shoot', this.playerDist, 300);
                 }
                 else
                 {
