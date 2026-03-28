@@ -10,6 +10,7 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
         this.hitmanager = new CM.Hitable();
         this.playerDist = 9999;
         this.dead = false;
+        this.idleSoundId = null;
     }
 
     setTileInfoRetriever(retriever) {
@@ -40,6 +41,7 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
         if (player.z < CM.GroundLevel - 0.3) return;
 
         this.playerDist = CM.distance(this.position, player.position);
+        this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, this.playerDist, 200, 2);
 
         if (this.playerDist < 200) {
             var movement = CM.getVector(this.position, player.position, 1);
@@ -55,6 +57,7 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
             if (this.playerDist < 15) {
                 if (this.damageCooldown == 0) {
                     player.hit(1);
+                    CM.Sound.playAt('crab_attack', this.playerDist, 150);
                     this.damageCooldown = 60;
                 }
             }

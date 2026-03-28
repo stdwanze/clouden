@@ -339,6 +339,22 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
         }
     }
 }
+CM.MINEABLEMAKER = function (world, imagerepo) {
+    return function (tile) {
+        if (!tile.isLand()) return;
+        var rand = Math.random();
+        if (rand < 0.05) {
+            var rock = new CM.Mineable(tile.location.clone(), 'STONE', imagerepo.getImage('mineable_rock'));
+            rock.setRemover(world.removeObject.bind(world));
+            world.addObject(rock);
+        } else if (rand < 0.12) {
+            var tree = new CM.Mineable(tile.location.clone(), 'WOOD', imagerepo.getImage('mineable_tree'));
+            tree.setRemover(world.removeObject.bind(world));
+            world.addObject(tree);
+        }
+    };
+}
+
 CM.VEHICLEDEATHMAKER = function (app, world, player)
 {
     CM.VEHICLEDEATH =  function (vehicle)

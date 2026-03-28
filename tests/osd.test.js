@@ -115,4 +115,20 @@ describe('CM.OnScreenDocu', () => {
     doc.draw(renderer);
     expect(ctx.drawImage).toHaveBeenCalled();
   });
+
+  test('draw() renders mining section text when visible', () => {
+    doc.toggle();
+    doc.draw(renderer);
+    const texts = ctx.fillText.mock.calls.map(c => c[0]);
+    expect(texts.some(t => t.includes('e-key'))).toBe(true);
+    expect(texts.some(t => /wood/i.test(t))).toBe(true);
+    expect(texts.some(t => /stone/i.test(t))).toBe(true);
+  });
+
+  test('draw() renders inventory hint when visible', () => {
+    doc.toggle();
+    doc.draw(renderer);
+    const texts = ctx.fillText.mock.calls.map(c => c[0]);
+    expect(texts.some(t => t.includes('i-key'))).toBe(true);
+  });
 });

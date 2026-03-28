@@ -19,7 +19,7 @@ CM.OnScreenDocu = class OnScreenDoc{
         if (!this.visible) return;
 
         var panelW = 420;
-        var panelH = 370;
+        var panelH = 440;
         var panelX = (renderer.getScreenWidth() - panelW) / 2;
         var panelY = 10;
         var textX = panelX + 20;
@@ -33,8 +33,10 @@ CM.OnScreenDocu = class OnScreenDoc{
         renderer.fillTextStatic("board the blimp with b-key", textX, panelY + 30 + line*3);
         renderer.fillTextStatic("ascend/descend with a and s key", textX, panelY + 30 + line*4);
         renderer.fillTextStatic("fire with c-key", textX, panelY + 30 + line*5);
+        renderer.fillTextStatic("mine resources with e-key", textX, panelY + 30 + line*6);
+        renderer.fillTextStatic("open inventory with i-key", textX, panelY + 30 + line*7);
 
-        var collectY = panelY + 30 + line * 6 + 10;
+        var collectY = panelY + 30 + line * 8 + 10;
         renderer.fillTextStatic("Collectables:", textX, collectY, 18);
 
         var iconSize = 24;
@@ -52,5 +54,10 @@ CM.OnScreenDocu = class OnScreenDoc{
             if (repo) renderer.drawImageStatic(repo.getImage(c.key), textX, rowY - iconSize + 4, iconSize, iconSize, 1);
             renderer.fillTextStatic(c.text, textX + iconSize + 10, rowY);
         });
+
+        var miningY = collectY + line + collectables.length * rowH + 10;
+        renderer.fillTextStatic("Mining:", textX, miningY, 18);
+        renderer.fillTextStatic("Wood (brown) - 3 hits with e-key", textX, miningY + line);
+        renderer.fillTextStatic("Stone (grey) - 5 hits with e-key", textX, miningY + line*2);
     }
 }

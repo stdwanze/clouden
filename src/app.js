@@ -14,6 +14,8 @@ CM.CloudEngine=    class CloudEngine{
             this.speed = 1;
             this.osd = new CM.OSD(this.renderer,this.imagerepo);
             this.over = false;
+            this.paused = false;
+            this.inventory = new CM.Inventory(this.imagerepo);
            
         }
 
@@ -23,73 +25,74 @@ CM.CloudEngine=    class CloudEngine{
 
         }
         tickndraw(){
-
-            if(!this.over){
-                // update renderer
-                this.renderer.setZoom(this.player.z);
-                this.renderer.clear();
-                this.renderer.updatePos(this.player.position);
-                this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
-            
-
-                // handle movement every frame for smooth input
-                this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
-
-                // interacte player with world
-                this.tryCollect();
-
-                // draw world
-                this.world.getScene(this.player.position).forEach(element => {
-                    this.renderer.draw(element);
-                });
-
-
-                // draw movableobjects
-                this.world.getObjects().forEach(element =>
-                {
-                    element.tick(this.player);
-                    if(this.player.z >= element.z+0.3)
-                    {
-                        this.renderer.lighter()
-                    }
-                    this.renderer.draw(element);
-                    this.renderer.restore();
-                });
-
-                //draw Player
-                this.player.tick();
-                this.renderer.draw(this.player);
-
-                // hit flash overlay
-                if(this.player.hitFlashFrames > 0) {
-                    var alpha = (this.player.hitFlashFrames / 20) * 0.25;
-                    this.renderer.drawRectangleStatic(0, 0, this.renderer.getScreenWidth(), this.renderer.getScreenHeight(), 'rgba(220,0,0,' + alpha + ')');
-                }
-                
-               
-                
-
-                var playerScores = this.player.getScores().getAll();
-                this.osd.displayScores( playerScores,"BOTTOM-LEFT");
-
-                if(this.player.isMounted()){
-                    var vScores = this.player.getMountScores().getAll();
-                    this.osd.displayScores(vScores,"BOTTOM-RIGHT");
-                    CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
-                }
-            }
-            else
-            {
-                this.renderer.fillText("GAME OVER",this.player.position.x,this.player.position.y, 50);
-            }
-            this.osdocu.draw(this.renderer); //, this.player.position);
             var self = this;
-            // register next
-            //if (this.run && this.stillrun()) {
-                requestAnimFrame( function() {
-                    self.tickndraw();
-                });
-            //}
+
+            if(!this.paused){
+                if(!this.over){
+                    // update renderer
+                    this.renderer.setZoom(this.player.z);
+                    this.renderer.clear();
+                    this.renderer.updatePos(this.player.position);
+                    this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
+
+
+                    // handle movement every frame for smooth input
+                    this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
+
+                    // interacte player with world
+                    this.tryCollect();
+
+                    // draw world
+                    this.world.getScene(this.player.position).forEach(element => {
+                        this.renderer.draw(element);
+                    });
+
+
+                    // draw movableobjects
+                    this.world.getObjects().forEach(element =>
+                    {
+                        element.tick(this.player);
+                        if(this.player.z >= element.z+0.3)
+                        {
+                            this.renderer.lighter()
+                        }
+                        this.renderer.draw(element);
+                        this.renderer.restore();
+                    });
+
+                    //draw Player
+                    this.player.tick();
+                    this.renderer.draw(this.player);
+
+                    // hit flash overlay
+                    if(this.player.hitFlashFrames > 0) {
+                        var alpha = (this.player.hitFlashFrames / 20) * 0.25;
+                        this.renderer.drawRectangleStatic(0, 0, this.renderer.getScreenWidth(), this.renderer.getScreenHeight(), 'rgba(220,0,0,' + alpha + ')');
+                    }
+
+
+
+
+                    var playerScores = this.player.getScores().getAll();
+                    this.osd.displayScores( playerScores,"BOTTOM-LEFT");
+
+                    if(this.player.isMounted()){
+                        var vScores = this.player.getMountScores().getAll();
+                        this.osd.displayScores(vScores,"BOTTOM-RIGHT");
+                        CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
+                    }
+                }
+                else
+                {
+                    this.renderer.fillText("GAME OVER",this.player.position.x,this.player.position.y, 50);
+                }
+            }
+
+            this.inventory.draw(this.renderer);
+            this.osdocu.draw(this.renderer);
+            requestAnimFrame( function() {
+                self.tickndraw();
+            });
         }
         moveDown(){
            this.player.move(0,1*this.speed);
@@ -109,6 +112,14 @@ CM.CloudEngine=    class CloudEngine{
           
 
         }
+        tryMine(){
+            var obj = this.world.getNearestObject(this.player.position, "mineable");
+            if (!obj) return;
+            if (CM.distance(this.player.getMidPoint(), obj.getMidPoint()) > 40) return;
+            var type = obj.resourceType;
+            var depleted = obj.mine();
+            if (depleted) this.inventory.addItem(type);
+        }
         tryCollect(){
             var obj =this.world.getNearestObject(this.player.position,"collectable");
             if(obj == null) return;
@@ -127,6 +138,8 @@ CM.CloudEngine=    class CloudEngine{
                     break;
                 }
                 case "67" : this.player.fire(); break;
+                case "69" : this.tryMine(); break;
+                case "73" : this.inventory.toggle(); this.paused = this.inventory.isOpen(); break;
                 case "77" : CM.Sound.toggleMute(); break;
 
             }
@@ -164,6 +177,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 this.player.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
+                this.world.applyForTile(CM.MINEABLEMAKER(this.world, this.imagerepo));
                 this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10,0.2));
                 this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
                 

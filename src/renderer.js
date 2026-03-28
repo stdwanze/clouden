@@ -141,4 +141,11 @@ CM.Renderer = class Renderer {
         this.ctxt.font = size + "px Ariel black";
         this.ctxt.fillText(text,x,y);
     }
+    fillTextStaticColor(text,x,y,size,color)
+    {
+        if(size == undefined) size = 20;
+        this.ctxt.fillStyle = color || "#24272b";
+        this.ctxt.font = size + "px Ariel black";
+        this.ctxt.fillText(text,x,y);
+    }
 }

@@ -37,6 +37,8 @@ require('../src/imagerepo');
 require('../src/simulations');
 require('../src/objects');
 require('../src/osd');
+require('../src/inventory');
+require('../src/mineable');
 require('../src/player');
 require('../src/enemy');
 require('../src/algos');
