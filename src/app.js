@@ -59,6 +59,12 @@ CM.CloudEngine=    class CloudEngine{
                 //draw Player
                 this.player.tick();
                 this.renderer.draw(this.player);
+
+                // hit flash overlay
+                if(this.player.hitFlashFrames > 0) {
+                    var alpha = (this.player.hitFlashFrames / 20) * 0.25;
+                    this.renderer.drawRectangleStatic(0, 0, this.renderer.getScreenWidth(), this.renderer.getScreenHeight(), 'rgba(220,0,0,' + alpha + ')');
+                }
                 
                
                 

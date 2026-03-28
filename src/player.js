@@ -17,6 +17,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
 
         this.direction = new CM.Point(6,0);
         this.dead = false;
+        this.hitFlashFrames = 0;
     }
     getScores(){
         return this.scores;
@@ -50,6 +51,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }   
     hit(strength)
     {
+        this.hitFlashFrames = 20;
         if(this.isMounted()) this.vehicle.hit(strength); //this.getMountScores().get("HEALTH").reduce(strength);
         else{
 
@@ -245,6 +247,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     tick(){
       if(!this.isMounted()) this.sprite.tick();
+      if(this.hitFlashFrames > 0) this.hitFlashFrames--;
     }
     
 }
