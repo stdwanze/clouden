@@ -40,6 +40,9 @@ CM.CloudEngine=    class CloudEngine{
 
                     // handle movement every frame for smooth input
                     this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
+                    var heldKeys = this.inputHandler.currentKeys;
+                    if (heldKeys[65]) this.player.ascend(0.03);
+                    if (heldKeys[83]) this.player.descend(0.03);
 
                     // interacte player with world
                     this.tryCollect();
@@ -140,8 +143,6 @@ CM.CloudEngine=    class CloudEngine{
 
            switch(""+k)
             {
-                case "65" : this.player.ascend(0.03); break;
-                case "83" : this.player.descend(0.03); break;
                 case "66" : {
                     if (this.player.isMounted()) { this.player.dismount(); CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); }
                     else { this.tryMount(); CM.Sound.play('mount'); CM.Sound.play('blimp_hum'); }
