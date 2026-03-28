@@ -243,7 +243,21 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
         world.addObject(dragon);
 
         world.addHitable("dragon"+i, dragon);
-     
+
+    }
+
+    function makeGroundEnemy(x1, y1, i)
+    {
+        var c = world.getChunkByIndeces(x1, y1);
+        var landTiles = c.getTiles().filter(function(t) { return t.isLand(); });
+        if (landTiles.length == 0) return;
+        var tile = landTiles[Math.floor(Math.random() * landTiles.length)];
+
+        var enemy = new CM.GroundEnemy(tile.location.clone(), imagerepo.getImage("crab"));
+        enemy.setTileInfoRetriever(CM.TILEACCESS(world));
+        enemy.setRemover(world.removeObject.bind(world));
+        world.addObject(enemy);
+        world.addHitable("groundenemy" + i, enemy);
     }
 
     function perChunk(x1,y1)
@@ -260,8 +274,13 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
                 var yOffSet =Math.random()*c.tilesize*c.widthInTiles;
                 makeDragon(locbase.move(xOffset,yOffSet),""+x1+"_"+y1+"_"+i)
             }
+            var ge = world.getHitablesByKey("groundenemy"+x1+"_"+y1+"_"+i);
+            if(ge == undefined)
+            {
+                makeGroundEnemy(x1, y1, ""+x1+"_"+y1+"_"+i);
+            }
         }
-      
+
     }
     return function (x,y)
     {
