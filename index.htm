@@ -4,17 +4,17 @@
     canvas { display: block; background: white; width: 1100px; height: 688px; }
     .game-container { position: relative; display: inline-block; }
     #helpBtn, #muteBtn {
-        position: absolute; top: 10px;
+        position: absolute; right: 10px;
         width: 36px; height: 36px; border-radius: 50%;
         background: rgba(0,0,0,0.5); color: white;
         border: 2px solid white; font-size: 18px; font-weight: bold;
         cursor: pointer; z-index: 10;
     }
-    #helpBtn { right: 10px; }
-    #muteBtn { right: 56px; }
+    #muteBtn { top: 155px; }
+    #helpBtn { top: 201px; }
     #muteBtn.muted { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.4); }
     #saveIndicator {
-        position: absolute; top: 10px; left: 10px;
+        position: absolute; top: 10px; left: 130px;
         display: none; align-items: center; gap: 6px;
         background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 18px;
         padding: 4px 8px 4px 14px; color: white; font-size: 13px;
@@ -70,6 +70,7 @@
     <script type="text/javascript" src="src/world.js"></script>
     
     <script type="text/javascript" src="src/saveload.js"></script>
+    <script type="text/javascript" src="src/minimap.js"></script>
     <script type="text/javascript" src="src/app.js"></script>
 <script type="text/javascript" src="src/renderer.js"></script>
 <script type="text/javascript" src="src/onscreendoc.js"></script>
@@ -125,6 +126,8 @@
     window.addEventListener("load", function() {
         updateSaveIndicator();
         CM.Sound.init();
+        CM.Sound.toggleMute();
+        document.getElementById('muteBtn').classList.add('muted');
 
         // Init seeded RNG — use saved seed for reproducible world, or generate a new one.
         var seed = CM.SaveLoad.getSavedSeed();

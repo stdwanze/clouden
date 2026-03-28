@@ -31,14 +31,18 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
         this.scores.get("HEALTH").reduce(strength);
         if (this.scores.get("HEALTH").getScore() == 0) {
             this.dead = true;
+            this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, 9999, 200, 2);
             if (this.remove) this.remove(this);
         }
     }
 
     tick(player) {
         if (player == null) return;
-        // only aggro when player is on the ground, not airborne in blimp
-        if (player.z < CM.GroundLevel - 0.3) return;
+        // only aggro when player is on the ground, not in blimp
+        if (player.isMounted() || player.z < CM.GroundLevel - 0.3) {
+            this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, 9999, 200, 2);
+            return;
+        }
 
         this.playerDist = CM.distance(this.position, player.position);
         this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, this.playerDist, 200, 2);
@@ -100,6 +104,7 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
        
         if(healthBar.getScore() == healthBar.getMin() && this.remove)
         {
+            this.idleSoundId = CM.Sound.updateSpatialLoop('enemy_idle', this.idleSoundId, 9999, 250, 2);
             this.remove(this);
         }
     }

@@ -27,20 +27,20 @@ CM.getVector = function (start, end, scale)
 }
 CM.FireBallCreator = function (world, repo)
 {
-    return function (location, z, typename, movementvector, sourceId)
+    return function (location, z, typename, movementvector, sourceId, bowLevel)
     {
         if(typename == "DRAGONFIRE")
         {
-            var img = repo.getImage("fireball_small");       
+            var img = repo.getImage("fireball_small");
             var fb = new CM.FireBall(location,img,z,100,movementvector,0.1, sourceId);
-        
+
         }
         else if(typename == "HANDGUN")
         {
-     
-            var img = repo.getImage("fireball_small");       
+            var img = repo.getImage("fireball_small");
             var fb = new CM.FireBall(location,img,z,100,movementvector,0.1, sourceId);
-        
+            fb.strength = 4 + (bowLevel || 0);
+
         }
         else{
             
@@ -340,17 +340,27 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
     }
 }
 CM.MINEABLEMAKER = function (world, imagerepo) {
+    function spawnCluster(type, centerLocation, count) {
+        var img = imagerepo.getImage(type === 'STONE' ? 'mineable_rock' : 'mineable_tree');
+        var spread = 48;
+        for (var i = 0; i < count; i++) {
+            var ox = (CM.rng() * 2 - 1) * spread;
+            var oy = (CM.rng() * 2 - 1) * spread;
+            var pos = centerLocation.clone().move(ox, oy);
+            var m = new CM.Mineable(pos, type, img);
+            m.setRemover(world.removeObject.bind(world));
+            world.addObject(m);
+        }
+    }
     return function (tile) {
         if (!tile.isLand()) return;
         var rand = CM.rng();
-        if (rand < 0.05) {
-            var rock = new CM.Mineable(tile.location.clone(), 'STONE', imagerepo.getImage('mineable_rock'));
-            rock.setRemover(world.removeObject.bind(world));
-            world.addObject(rock);
-        } else if (rand < 0.12) {
-            var tree = new CM.Mineable(tile.location.clone(), 'WOOD', imagerepo.getImage('mineable_tree'));
-            tree.setRemover(world.removeObject.bind(world));
-            world.addObject(tree);
+        if (rand < 0.02) {
+            var count = 1 + Math.floor(CM.rng() * 3); // 1-3
+            spawnCluster('STONE', tile.location, count);
+        } else if (rand < 0.05) {
+            var count = 1 + Math.floor(CM.rng() * 5); // 1-5
+            spawnCluster('WOOD', tile.location, count);
         }
     };
 }
@@ -381,6 +391,23 @@ CM.VEHICLEDEATHMAKER = function (app, world, player)
     }
     CM.PLAYERDEATH = function (player)
     {
-        app.gameOver();
+        var safePoints = world.getObjects().filter(function(o) { return o.isSafePoint; });
+        if (safePoints.length === 0) {
+            app.gameOver();
+            return;
+        }
+        var nearest = safePoints.reduce(function(best, sp) {
+            return CM.distance(player.position, sp.position) < CM.distance(player.position, best.position) ? sp : best;
+        });
+        player.position.x = nearest.position.x;
+        player.position.y = nearest.position.y;
+        player.spriteright.position.x = nearest.position.x;
+        player.spriteright.position.y = nearest.position.y;
+        player.spriteleft.position.x  = nearest.position.x;
+        player.spriteleft.position.y  = nearest.position.y;
+        player.getScores().get("HEALTH").score = 3;
+        player.dead = false;
+        CM.SaveLoad.save(app);
+        app.notify('Respawn an Blockh\u00fctte', 120);
     }
 }

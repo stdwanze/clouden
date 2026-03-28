@@ -18,6 +18,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         this.direction = new CM.Point(6,0);
         this.dead = false;
         this.hitFlashFrames = 0;
+        this.bowLevel = 0;
     }
     getScores(){
         return this.scores;
@@ -44,7 +45,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         {
     
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
-            this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source );
+            this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source, this.bowLevel);
             ammoScore.reduce();
             CM.Sound.play(this.isMounted() ? 'shoot_blimp' : 'shoot');
         }

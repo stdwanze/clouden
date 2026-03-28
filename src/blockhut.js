@@ -4,6 +4,8 @@ CM.Blockhut = class Blockhut extends CM.MoveableObject {
     constructor(position) {
         super(position, 11, 12, CM.GroundLevel);
         this.isSafePoint = true;
+        this.hasBed = false;
+        this.hasCraftingStation = false;
     }
 
     draw(renderer) {

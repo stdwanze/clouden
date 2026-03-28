@@ -41,7 +41,7 @@ CM.SaveLoad = (function() {
 
         engine.world.getObjects().forEach(function(obj) {
             if (obj.isSafePoint) {
-                blockhuts.push({ x: obj.position.x, y: obj.position.y });
+                blockhuts.push({ x: obj.position.x, y: obj.position.y, hasBed: obj.hasBed, hasCraftingStation: obj.hasCraftingStation });
             } else if (obj.mineable) {
                 mineables.push({
                     x: obj.position.x, y: obj.position.y,
@@ -72,7 +72,7 @@ CM.SaveLoad = (function() {
             seed: CM.currentSeed,
             player: {
                 x: player.position.x, y: player.position.y,
-                z: player.z, scores: scores
+                z: player.z, scores: scores, bowLevel: player.bowLevel
             },
             inventory:    engine.inventory.slots,
             mineables:    mineables,
@@ -101,6 +101,7 @@ CM.SaveLoad = (function() {
         player.spriteright.position.x = px; player.spriteright.position.y = py;
         player.spriteleft.position.x  = px; player.spriteleft.position.y  = py;
         player.z = state.player.z;
+        player.bowLevel = state.player.bowLevel || 0;
 
         var savedScores = state.player.scores;
         player.getScores().getAll().forEach(function(s) {
@@ -148,7 +149,10 @@ CM.SaveLoad = (function() {
         // --- Blockhuts ---
         engine.world.objects = engine.world.objects.filter(function(o) { return !o.isSafePoint; });
         (state.blockhuts || []).forEach(function(b) {
-            engine.world.addObject(new CM.Blockhut(new CM.Point(b.x, b.y)));
+            var hut = new CM.Blockhut(new CM.Point(b.x, b.y));
+            hut.hasBed = !!b.hasBed;
+            hut.hasCraftingStation = !!b.hasCraftingStation;
+            engine.world.addObject(hut);
         });
 
         return true;
