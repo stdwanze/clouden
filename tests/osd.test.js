@@ -43,10 +43,11 @@ describe('CM.OSD', () => {
       expect(ctx.fillRect).toHaveBeenCalledTimes(4);
     });
 
-    test('BOTTOM-LEFT: first score x starts at 0', () => {
+    test('BOTTOM-LEFT: first score x starts with a small padding from the edge', () => {
       osd.displayScores([new CM.Health(10)], 'BOTTOM-LEFT');
       const firstCall = ctx.fillRect.mock.calls[0];
-      expect(firstCall[0]).toBe(0); // size*0*2 = 0
+      expect(firstCall[0]).toBeGreaterThan(0);
+      expect(firstCall[0]).toBeLessThan(20);
     });
 
     test('BOTTOM-RIGHT: first score x is near right edge of screen', () => {

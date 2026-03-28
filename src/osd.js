@@ -28,11 +28,12 @@ CM.OSD = class OSD
     {
         var prefX = preferredPlace.split("-",2)[1];
         var screenwidth = this.renderer.getScreenWidth();
+        var pad = 8;
 
-        var nextX = prefX == "LEFT" ? function (i,size){ return size*i*2; } :
-        function (i,size){ return screenwidth - (size*(i+1)*2); }
+        var nextX = prefX == "LEFT" ? function (i,size){ return pad + size*i*2; } :
+        function (i,size){ return screenwidth - pad - (size*(i+1)*2); }
 
-        var nextY = function (size) { return size; };
+        var nextY = function (size) { return size + pad; };
 
 
         for(var i = 0; i < scores.length; i++)
