@@ -13,6 +13,36 @@
     #helpBtn { right: 10px; }
     #muteBtn { right: 56px; }
     #muteBtn.muted { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.4); }
+    #saveIndicator {
+        position: absolute; top: 10px; left: 10px;
+        display: none; align-items: center; gap: 6px;
+        background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 18px;
+        padding: 4px 8px 4px 14px; color: white; font-size: 13px;
+        font-family: monospace; z-index: 10;
+    }
+    #deleteSaveBtn {
+        background: none; border: 1px solid rgba(255,255,255,0.4); border-radius: 50%;
+        color: rgba(255,255,255,0.7); cursor: pointer; font-size: 13px;
+        width: 22px; height: 22px; line-height: 1; padding: 0;
+    }
+    #deleteSaveBtn:hover { background: rgba(255,255,255,0.15); color: white; }
+    #confirmOverlay {
+        display: none; position: absolute; inset: 0;
+        background: rgba(0,0,0,0.65); z-index: 20;
+        justify-content: center; align-items: center;
+    }
+    #confirmDialog {
+        background: #1a1e28; border: 2px solid #445566; border-radius: 8px;
+        padding: 30px 40px; color: white; font-family: monospace; text-align: center;
+    }
+    #confirmDialog p { margin: 0 0 22px; font-size: 16px; }
+    .confirm-btns { display: flex; gap: 12px; justify-content: center; }
+    .confirm-btns button {
+        padding: 8px 22px; border-radius: 4px; border: 2px solid #445566;
+        background: #232835; color: white; font-size: 14px;
+        cursor: pointer; font-family: monospace;
+    }
+    .confirm-btns button:hover { background: #2e3545; }
 </style>
      <script
     src="https://code.jquery.com/jquery-3.2.1.js"
@@ -52,12 +82,47 @@
 <canvas id="playground" width="1280" height="800"></canvas>
 <button id="muteBtn">&#9835;</button>
 <button id="helpBtn">?</button>
+<div id="saveIndicator">
+    Spielstand
+    <button id="deleteSaveBtn" title="Spielstand l&ouml;schen">&#x2715;</button>
+</div>
+<div id="confirmOverlay">
+    <div id="confirmDialog">
+        <p>Spielstand wirklich l&ouml;schen?</p>
+        <div class="confirm-btns">
+            <button id="confirmYes">Ja, l&ouml;schen</button>
+            <button id="confirmNo">Abbrechen</button>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
+    function updateSaveIndicator() {
+        var el = document.getElementById('saveIndicator');
+        el.style.display = CM.SaveLoad.getSavedSeed() !== null ? 'flex' : 'none';
+    }
+    window.updateSaveIndicator = updateSaveIndicator;
+
+    var activeEngine = null;
+
+    document.getElementById('deleteSaveBtn').addEventListener('click', function() {
+        if (activeEngine) activeEngine.paused = true;
+        document.getElementById('confirmOverlay').style.display = 'flex';
+    });
+    document.getElementById('confirmYes').addEventListener('click', function() {
+        CM.SaveLoad.clear();
+        updateSaveIndicator();
+        document.getElementById('confirmOverlay').style.display = 'none';
+        if (activeEngine) activeEngine.paused = false;
+    });
+    document.getElementById('confirmNo').addEventListener('click', function() {
+        document.getElementById('confirmOverlay').style.display = 'none';
+        if (activeEngine) activeEngine.paused = false;
+    });
+
     window.addEventListener("load", function() {
-    
-        
+        updateSaveIndicator();
         CM.Sound.init();
 
         // Init seeded RNG — use saved seed for reproducible world, or generate a new one.
@@ -73,6 +138,7 @@
             world.addObjects(cloudSource.generateClouds(0.05,0.05));
             var engine = new CM.CloudEngine(new CM.Renderer("playground"),world,repo, new CM.Point(10, 10));
             engine.init();
+            activeEngine = engine;
             engine.run();
             CM.Sound.startMusic();
 

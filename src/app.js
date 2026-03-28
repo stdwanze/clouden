@@ -150,7 +150,7 @@ CM.CloudEngine=    class CloudEngine{
                 case "67" : this.player.fire(); break;
                 case "69" : this.tryMine(); break;
                 case "73" : this.inventory.toggle(); this.paused = this.inventory.isOpen(); break;
-                case "76" : CM.SaveLoad.save(this); this.notify('Gespeichert!'); break;
+                case "76" : CM.SaveLoad.save(this); this.notify('Gespeichert!'); if (window.updateSaveIndicator) window.updateSaveIndicator(); break;
                 case "77" : CM.Sound.toggleMute(); break;
 
             }
@@ -216,13 +216,6 @@ CM.CloudEngine=    class CloudEngine{
                 })();
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
-                this.inputHandler.on("keydown", (k) => {
-                    if ("" + k === "186") { // Ö on German keyboard
-                        CM.SaveLoad.clear();
-                        this.notify('Spielstand gelöscht');
-                    }
-                });
-
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
 
