@@ -2,7 +2,7 @@ CM = window.CM || {};
 
 CM.NPC = class NPC extends CM.MoveableObject {
     constructor(position) {
-        super(position, 12, 20, CM.GroundLevel);
+        super(position, 28, 23, CM.GroundLevel);
         this.isNPC = true;
         this.questIndex = 0;
         this.questAccepted = false;
@@ -25,28 +25,29 @@ CM.NPC = class NPC extends CM.MoveableObject {
         var y = this.position.y;
         var z = this.z;
 
-        // Hat top
-        renderer.drawRectangleZ(x + 2, y - 3, 8,  3, '#5a3010', z);
-        // Hat brim
-        renderer.drawRectangleZ(x,     y,      12, 2, '#5a3010', z);
-        // Head
-        renderer.drawRectangleZ(x + 2, y + 2,  8,  6, '#f0c090', z);
-        // Eyes
-        renderer.drawRectangleZ(x + 4, y + 4,  1,  1, '#333333', z);
-        renderer.drawRectangleZ(x + 7, y + 4,  1,  1, '#333333', z);
-        // Body
-        renderer.drawRectangleZ(x + 2, y + 8,  8,  7, '#c8883a', z);
-        // Arms
-        renderer.drawRectangleZ(x,     y + 9,  2,  5, '#c8883a', z);
-        renderer.drawRectangleZ(x + 10,y + 9,  2,  5, '#c8883a', z);
-        // Legs
-        renderer.drawRectangleZ(x + 3, y + 15, 3,  5, '#5a3820', z);
-        renderer.drawRectangleZ(x + 6, y + 15, 3,  5, '#5a3820', z);
+        // Mast
+        renderer.drawRectangleZ(x + 13, y,      2, 18, '#5a3010', z);
+        // Yard arm
+        renderer.drawRectangleZ(x +  6, y + 1, 16,  1, '#5a3010', z);
+        // Sail
+        renderer.drawRectangleZ(x +  7, y + 2,  9, 10, '#f5f0e0', z);
+        // Flag
+        renderer.drawRectangleZ(x + 15, y - 3,  5,  3, '#cc2222', z);
+        // Stern cabin
+        renderer.drawRectangleZ(x + 19, y + 11, 7,  5, '#7a4828', z);
+        // Cabin window
+        renderer.drawRectangleZ(x + 21, y + 12, 2,  2, '#d4a04a', z);
+        // Deck
+        renderer.drawRectangleZ(x,      y + 15, 28,  2, '#8a5830', z);
+        // Hull
+        renderer.drawRectangleZ(x +  2, y + 17, 24,  4, '#6b3a1e', z);
+        // Keel
+        renderer.drawRectangleZ(x +  4, y + 21, 20,  2, '#4a2810', z);
 
-        // Quest marker "!" above hat when quest available
+        // Quest marker "!" above mast when quest available
         if (!this.questAccepted && this.getQuest()) {
-            renderer.drawRectangleZ(x + 5, y - 14, 2, 5, '#ffdd00', z);
-            renderer.drawRectangleZ(x + 5, y -  8, 2, 2, '#ffdd00', z);
+            renderer.drawRectangleZ(x + 13, y - 13, 2, 5, '#ffdd00', z);
+            renderer.drawRectangleZ(x + 13, y -  7, 2, 2, '#ffdd00', z);
         }
     }
 }

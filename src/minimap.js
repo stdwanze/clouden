@@ -65,7 +65,7 @@ CM.Minimap = class Minimap {
             };
         }
 
-        // blockhütten, blimp, vogelscheuchen
+        // blockhütten, blimp, vogelscheuchen, npcs
         world.getObjects().forEach(function(obj) {
             if (obj.isSafePoint) {
                 var p = toScreen(obj.position.x, obj.position.y);
@@ -95,6 +95,10 @@ CM.Minimap = class Minimap {
                 ctx.stroke();
                 // dot
                 ctx.fillStyle = '#a0e650';
+                ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+            } else if (obj.isNPC) {
+                var p = toScreen(obj.position.x, obj.position.y);
+                ctx.fillStyle = '#ffdd00';
                 ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
             }
         });
