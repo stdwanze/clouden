@@ -17,6 +17,10 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
         this.tileInfoRetriever = retriever;
     }
 
+    setScarecrowGetter(fn) {
+        this.getScarecrows = fn;
+    }
+
     canMoveTo(dx, dy) {
         if (!this.tileInfoRetriever) return true;
         var next = new CM.Point(this.position.x + dx, this.position.y + dy);
@@ -46,6 +50,24 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
 
         this.playerDist = CM.distance(this.position, player.position);
         this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, this.playerDist, 200, 2);
+
+        if (this.getScarecrows) {
+            var scarecrows = this.getScarecrows();
+            for (var i = 0; i < scarecrows.length; i++) {
+                var sc = scarecrows[i];
+                if (CM.distance(this.position, sc.position) < sc.repelRadius) {
+                    var flee = CM.getVector(sc.position, this.position, 1);
+                    var fdx = flee.x * this.speed;
+                    var fdy = flee.y * this.speed;
+                    if      (this.canMoveTo(fdx, fdy)) { this.move(fdx, fdy); this.toggleAnimation(true); }
+                    else if (this.canMoveTo(fdx, 0))   { this.move(fdx, 0);   this.toggleAnimation(true); }
+                    else if (this.canMoveTo(0,   fdy)) { this.move(0,   fdy); this.toggleAnimation(true); }
+                    else                               {                       this.toggleAnimation(false); }
+                    if (this.damageCooldown > 0) this.damageCooldown--;
+                    return;
+                }
+            }
+        }
 
         if (this.playerDist < 200) {
             var movement = CM.getVector(this.position, player.position, 1);
@@ -95,6 +117,10 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     {
         this.spit = fireballmaker;
     }
+
+    setScarecrowGetter(fn) {
+        this.getScarecrows = fn;
+    }
     hit(strength)
     {
         this.hitmanager.hit();
@@ -113,6 +139,18 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
         if(player != null){
             this.playerDist = CM.distance(this.position, player.position);
             this.idleSoundId = CM.Sound.updateSpatialLoop('enemy_idle', this.idleSoundId, this.playerDist, 250, 2);
+
+            if (this.getScarecrows) {
+                var scarecrows = this.getScarecrows();
+                for (var i = 0; i < scarecrows.length; i++) {
+                    var sc = scarecrows[i];
+                    if (CM.distance(this.position, sc.position) < sc.repelRadius) {
+                        var flee = CM.getVector(sc.position, this.position, 1);
+                        super.move(flee.x * this.speed, flee.y * this.speed);
+                        return;
+                    }
+                }
+            }
 
             if(this.playerDist < 150)
             {

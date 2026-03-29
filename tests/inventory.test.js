@@ -89,6 +89,54 @@ describe('CM.Inventory', () => {
   });
 });
 
+describe('CM.Inventory draw() — item icon lookup', () => {
+  let renderer, ctx;
+  beforeEach(() => ({ renderer, ctx } = makeRenderer()));
+
+  function makeInvWithItem(type) {
+    const img = { width: 24, height: 24 };
+    const repo = { getImage: jest.fn().mockReturnValue(img) };
+    const inv = new CM.Inventory(repo);
+    inv.addItem(type);
+    inv.toggle();
+    return { inv, repo };
+  }
+
+  test('REED item looks up "item_reed" in imagerepo', () => {
+    const { inv, repo } = makeInvWithItem('REED');
+    inv.draw(renderer);
+    expect(repo.getImage).toHaveBeenCalledWith('item_reed');
+  });
+
+  test('BERRY_RED item looks up "item_berry_red" in imagerepo', () => {
+    const { inv, repo } = makeInvWithItem('BERRY_RED');
+    inv.draw(renderer);
+    expect(repo.getImage).toHaveBeenCalledWith('item_berry_red');
+  });
+
+  test('BERRY_BLUE item looks up "item_berry_blue" in imagerepo', () => {
+    const { inv, repo } = makeInvWithItem('BERRY_BLUE');
+    inv.draw(renderer);
+    expect(repo.getImage).toHaveBeenCalledWith('item_berry_blue');
+  });
+
+  test('draws the icon image when repo returns a valid image', () => {
+    const { inv } = makeInvWithItem('REED');
+    inv.draw(renderer);
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  test('falls back to label text when repo returns null', () => {
+    const repo = { getImage: jest.fn().mockReturnValue(null) };
+    const inv = new CM.Inventory(repo);
+    inv.addItem('REED');
+    inv.toggle();
+    inv.draw(renderer);
+    const texts = ctx.fillText.mock.calls.map(c => c[0]);
+    expect(texts.some(t => t === 'REED')).toBe(true);
+  });
+});
+
 describe('CM.Renderer fillTextStaticColor()', () => {
   let renderer, ctx;
 

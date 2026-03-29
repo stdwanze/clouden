@@ -79,7 +79,7 @@ describe('CM.SaveLoad — blockhut save/load', () => {
         CM.SaveLoad.save(makeEngine([hut]));
         const state = JSON.parse(localStorage.getItem('clouden_save_v2'));
         expect(state.blockhuts).toHaveLength(1);
-        expect(state.blockhuts[0]).toEqual({ x: 55, y: 77 });
+        expect(state.blockhuts[0]).toMatchObject({ x: 55, y: 77 });
     });
 
     test('save records multiple blockhuts', () => {

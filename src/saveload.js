@@ -13,7 +13,10 @@ CM.SaveLoad = (function() {
 
     var MINEABLE_IMAGE = {
         STONE: 'mineable_rock',
-        WOOD:  'mineable_tree'
+        WOOD:  'mineable_tree',
+        REED:  null,
+        BERRY_RED:  null,
+        BERRY_BLUE: null,
     };
 
     // Called BEFORE world creation — returns saved seed or null.
@@ -38,14 +41,21 @@ CM.SaveLoad = (function() {
         var collectables = [];
         var blimps = [];
         var blockhuts = [];
+        var vogelscheuchen = [];
+        var npcs = [];
 
         engine.world.getObjects().forEach(function(obj) {
-            if (obj.isSafePoint) {
+            if (obj.isNPC) {
+                npcs.push({ questIndex: obj.questIndex, questAccepted: obj.questAccepted });
+            } else if (obj.isScarecrow) {
+                vogelscheuchen.push({ x: obj.position.x, y: obj.position.y });
+            } else if (obj.isSafePoint) {
                 blockhuts.push({ x: obj.position.x, y: obj.position.y, hasBed: obj.hasBed, hasCraftingStation: obj.hasCraftingStation });
             } else if (obj.mineable) {
                 mineables.push({
                     x: obj.position.x, y: obj.position.y,
                     resourceType: obj.resourceType,
+                    classType: obj.classType || null,
                     hitsReceived: obj.hitsReceived,
                     hitsRequired: obj.hitsRequired
                 });
@@ -75,10 +85,12 @@ CM.SaveLoad = (function() {
                 z: player.z, scores: scores, bowLevel: player.bowLevel
             },
             inventory:    engine.inventory.slots,
-            mineables:    mineables,
-            collectables: collectables,
-            blimps:       blimps,
-            blockhuts:    blockhuts
+            mineables:       mineables,
+            collectables:    collectables,
+            blimps:          blimps,
+            blockhuts:       blockhuts,
+            vogelscheuchen:  vogelscheuchen,
+            npcs:            npcs
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -114,8 +126,16 @@ CM.SaveLoad = (function() {
         // --- Mineables ---
         engine.world.objects = engine.world.objects.filter(function(o) { return !o.mineable; });
         (state.mineables || []).forEach(function(m) {
-            var img = engine.imagerepo.getImage(MINEABLE_IMAGE[m.resourceType]);
-            var obj = new CM.Mineable(new CM.Point(m.x, m.y), m.resourceType, img);
+            var pos = new CM.Point(m.x, m.y);
+            var obj;
+            if (m.classType === 'Reed') {
+                obj = new CM.Reed(pos);
+            } else if (m.classType === 'BerryBush') {
+                obj = new CM.BerryBush(pos, m.resourceType);
+            } else {
+                var img = engine.imagerepo.getImage(MINEABLE_IMAGE[m.resourceType]);
+                obj = new CM.Mineable(pos, m.resourceType, img);
+            }
             obj.hitsReceived = m.hitsReceived || 0;
             obj.hitsRequired = m.hitsRequired;
             obj.setRemover(engine.world.removeObject.bind(engine.world));
@@ -153,6 +173,21 @@ CM.SaveLoad = (function() {
             hut.hasBed = !!b.hasBed;
             hut.hasCraftingStation = !!b.hasCraftingStation;
             engine.world.addObject(hut);
+        });
+
+        // --- Vogelscheuchen ---
+        engine.world.objects = engine.world.objects.filter(function(o) { return !o.isScarecrow; });
+        (state.vogelscheuchen || []).forEach(function(v) {
+            engine.world.addObject(new CM.Vogelscheuche(new CM.Point(v.x, v.y)));
+        });
+
+        // --- NPCs ---
+        var npcObjects = engine.world.getObjects().filter(function(o) { return o.isNPC; });
+        (state.npcs || []).forEach(function(n, i) {
+            if (npcObjects[i]) {
+                npcObjects[i].questIndex    = n.questIndex    || 0;
+                npcObjects[i].questAccepted = !!n.questAccepted;
+            }
         });
 
         return true;

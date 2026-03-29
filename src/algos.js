@@ -235,11 +235,16 @@ CM.CLOUDGEN = function (world,repo){
 }
 CM.ADDENEMYMAKER = function (world, imagerepo)
 {
+    function getScarecrows() {
+        return world.getObjects().filter(function(o) { return o.isScarecrow; });
+    }
+
     function makeDragon (location, i)
     {
         var dragon = new CM.Dragon(location.clone(),imagerepo.getImage("dragon_small"));
         dragon.setFireBallCreator(CM.FireBallCreator(world,imagerepo));
         dragon.setRemover(world.removeObject.bind(world));
+        dragon.setScarecrowGetter(getScarecrows);
         world.addObject(dragon);
 
         world.addHitable("dragon"+i, dragon);
@@ -256,6 +261,7 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
         var enemy = new CM.GroundEnemy(tile.location.clone(), imagerepo.getImage("crab"));
         enemy.setTileInfoRetriever(CM.TILEACCESS(world));
         enemy.setRemover(world.removeObject.bind(world));
+        enemy.setScarecrowGetter(getScarecrows);
         world.addObject(enemy);
         world.addHitable("groundenemy" + i, enemy);
     }
@@ -264,6 +270,14 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
     {
         if(x1 < 0 || y1 < 0) return;
         var c = world.getChunkByIndeces(x1,y1);
+        var chunkCenter = new CM.Point(
+            c.locationbase.x + c.tilesize * c.widthInTiles / 2,
+            c.locationbase.y + c.tilesize * c.widthInTiles / 2
+        );
+        var scarecrows = world.getObjects().filter(function(o) { return o.isScarecrow; });
+        for (var s = 0; s < scarecrows.length; s++) {
+            if (CM.distance(chunkCenter, scarecrows[s].position) < scarecrows[s].repelRadius) return;
+        }
         for(var i = 0; i < 3; i++)
         {
             var dragon = world.getHitablesByKey("dragon"+x1+"_"+y1+"_"+i);
@@ -340,27 +354,50 @@ CM.COLLECTABLEMAKER = function  (world, imagerepo){
     }
 }
 CM.MINEABLEMAKER = function (world, imagerepo) {
+    var getTile = CM.TILEACCESS(world);
     function spawnCluster(type, centerLocation, count) {
-        var img = imagerepo.getImage(type === 'STONE' ? 'mineable_rock' : 'mineable_tree');
+        var img = type === 'STONE' ? imagerepo.getImage('mineable_rock')
+                : type === 'WOOD'  ? imagerepo.getImage('mineable_tree')
+                : null;
         var spread = 48;
         for (var i = 0; i < count; i++) {
             var ox = (CM.rng() * 2 - 1) * spread;
             var oy = (CM.rng() * 2 - 1) * spread;
             var pos = centerLocation.clone().move(ox, oy);
-            var m = new CM.Mineable(pos, type, img);
+            var spawnTile = getTile(pos);
+            if (!spawnTile || !spawnTile.isLand()) continue;
+            var m;
+            if (type === 'REED') {
+                m = new CM.Reed(pos);
+            } else if (type === 'BERRY_RED' || type === 'BERRY_BLUE') {
+                m = new CM.BerryBush(pos, type);
+            } else {
+                m = new CM.Mineable(pos, type, img);
+            }
             m.setRemover(world.removeObject.bind(world));
             world.addObject(m);
         }
     }
     return function (tile) {
         if (!tile.isLand()) return;
+        var info = tile.info;
+        var isWaterEdge = info.borderTop || info.borderLeft || info.borderRight || info.borderDown;
         var rand = CM.rng();
-        if (rand < 0.02) {
-            var count = 1 + Math.floor(CM.rng() * 3); // 1-3
-            spawnCluster('STONE', tile.location, count);
-        } else if (rand < 0.05) {
-            var count = 1 + Math.floor(CM.rng() * 5); // 1-5
-            spawnCluster('WOOD', tile.location, count);
+
+        if (isWaterEdge) {
+            if (rand < 0.10) {
+                spawnCluster('REED', tile.location, 1 + Math.floor(CM.rng() * 3));
+            }
+            return;
+        }
+
+        if (rand < 0.01) {
+            spawnCluster('STONE', tile.location, 1 + Math.floor(CM.rng() * 3));
+        } else if (rand < 0.03) {
+            spawnCluster('WOOD', tile.location, 1 + Math.floor(CM.rng() * 5));
+        } else if (rand < 0.04) {
+            var type = CM.rng() < 0.5 ? 'BERRY_RED' : 'BERRY_BLUE';
+            spawnCluster(type, tile.location, 1 + Math.floor(CM.rng() * 2));
         }
     };
 }
@@ -399,15 +436,25 @@ CM.VEHICLEDEATHMAKER = function (app, world, player)
         var nearest = safePoints.reduce(function(best, sp) {
             return CM.distance(player.position, sp.position) < CM.distance(player.position, best.position) ? sp : best;
         });
-        player.position.x = nearest.position.x;
-        player.position.y = nearest.position.y;
-        player.spriteright.position.x = nearest.position.x;
-        player.spriteright.position.y = nearest.position.y;
-        player.spriteleft.position.x  = nearest.position.x;
-        player.spriteleft.position.y  = nearest.position.y;
-        player.getScores().get("HEALTH").score = 3;
-        player.dead = false;
-        CM.SaveLoad.save(app);
-        app.notify('Respawn an Blockh\u00fctte', 120);
+        app.paused = true;
+        app.respawnDialog = true;
+        app.respawnAction = function() {
+            world.getHitables().forEach(function(obj) {
+                if (obj === player) return;
+                if (CM.distance(nearest.position, obj.position) < 32) {
+                    world.removeObject(obj);
+                }
+            });
+            player.position.x = nearest.position.x;
+            player.position.y = nearest.position.y;
+            player.spriteright.position.x = nearest.position.x;
+            player.spriteright.position.y = nearest.position.y;
+            player.spriteleft.position.x  = nearest.position.x;
+            player.spriteleft.position.y  = nearest.position.y;
+            player.getScores().get("HEALTH").score = 3;
+            player.dead = false;
+            CM.SaveLoad.save(app);
+            app.notify('Respawn an Blockh\u00fctte', 120);
+        };
     }
 }

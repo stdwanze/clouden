@@ -65,7 +65,7 @@ CM.Minimap = class Minimap {
             };
         }
 
-        // blockhütten
+        // blockhütten, blimp, vogelscheuchen
         world.getObjects().forEach(function(obj) {
             if (obj.isSafePoint) {
                 var p = toScreen(obj.position.x, obj.position.y);
@@ -75,6 +75,27 @@ CM.Minimap = class Minimap {
                 var p = toScreen(obj.position.x, obj.position.y);
                 ctx.fillStyle = '#4af';
                 ctx.fillRect(p.x - 2, p.y - 2, 5, 5);
+            } else if (obj.isScarecrow) {
+                var p = toScreen(obj.position.x, obj.position.y);
+                var maxR = obj.repelRadius * scale;
+                var t = obj.pulseFrame / 150;
+                var pulseR = t * maxR;
+                var pulseAlpha = (1 - t) * 0.7;
+                // static outer boundary
+                ctx.strokeStyle = 'rgba(160,230,80,0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, maxR, 0, Math.PI * 2);
+                ctx.stroke();
+                // animated pulse ring
+                ctx.strokeStyle = 'rgba(160,230,80,' + pulseAlpha + ')';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, pulseR, 0, Math.PI * 2);
+                ctx.stroke();
+                // dot
+                ctx.fillStyle = '#a0e650';
+                ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
             }
         });
 

@@ -231,15 +231,205 @@ describe('CM.VEHICLEDEATHMAKER', () => {
     expect(typeof CM.PLAYERDEATH).toBe('function');
   });
 
-  test('CM.PLAYERDEATH calls app.gameOver()', () => {
-    const app = { gameOver: jest.fn() };
+  test('CM.PLAYERDEATH calls app.gameOver() when no safe point exists', () => {
+    const app = { gameOver: jest.fn(), paused: false, respawnDialog: false, respawnAction: null, notify: jest.fn() };
     const player = {
       descend: jest.fn(), z: CM.GroundLevel, dismount: jest.fn(),
       getMountScores: () => ({ get: () => ({ reduce: jest.fn() }) }),
       position: new CM.Point(0, 0),
     };
-    CM.VEHICLEDEATHMAKER(app, { getChunk: jest.fn() }, player);
+    CM.VEHICLEDEATHMAKER(app, { getChunk: jest.fn(), getObjects: jest.fn().mockReturnValue([]) }, player);
     CM.PLAYERDEATH(player);
     expect(app.gameOver).toHaveBeenCalled();
+  });
+});
+
+// ── CM.PLAYERDEATH — respawn dialog ──────────────────────────────────────────
+
+describe('CM.PLAYERDEATH respawn dialog', () => {
+  const safePoint = { isSafePoint: true, position: new CM.Point(200, 300) };
+
+  function makeApp() {
+    return { gameOver: jest.fn(), paused: false, respawnDialog: false, respawnAction: null, notify: jest.fn() };
+  }
+  function makePlayer() {
+    const healthScore = { score: 0 };
+    return {
+      position: new CM.Point(50, 50),
+      spriteright: { position: new CM.Point(50, 50) },
+      spriteleft:  { position: new CM.Point(50, 50) },
+      getScores: () => ({ get: () => healthScore }),
+      dead: true,
+      _health: healthScore,
+    };
+  }
+  function makeWorld(objects) {
+    return { getObjects: jest.fn().mockReturnValue(objects), getChunk: jest.fn() };
+  }
+
+  test('sets respawnDialog to true when safe point exists', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    expect(app.respawnDialog).toBe(true);
+  });
+
+  test('sets paused to true when safe point exists', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    expect(app.paused).toBe(true);
+  });
+
+  test('stores respawnAction as a function', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    expect(typeof app.respawnAction).toBe('function');
+  });
+
+  test('does not immediately respawn (player.dead still true after PLAYERDEATH)', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    expect(player.dead).toBe(true);
+  });
+
+  test('respawnAction moves player to nearest safe point', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    const origSave = CM.SaveLoad.save;
+    CM.SaveLoad.save = jest.fn();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    app.respawnAction();
+    expect(player.position.x).toBe(200);
+    expect(player.position.y).toBe(300);
+    CM.SaveLoad.save = origSave;
+  });
+
+  test('respawnAction resets health to 3', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    const origSave = CM.SaveLoad.save;
+    CM.SaveLoad.save = jest.fn();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    app.respawnAction();
+    expect(player._health.score).toBe(3);
+    CM.SaveLoad.save = origSave;
+  });
+
+  test('respawnAction clears player.dead flag', () => {
+    const app = makeApp();
+    const player = makePlayer();
+    const origSave = CM.SaveLoad.save;
+    CM.SaveLoad.save = jest.fn();
+    CM.VEHICLEDEATHMAKER(app, makeWorld([safePoint]), player);
+    CM.PLAYERDEATH(player);
+    app.respawnAction();
+    expect(player.dead).toBe(false);
+    CM.SaveLoad.save = origSave;
+  });
+});
+
+// ── CM.MINEABLEMAKER ──────────────────────────────────────────────────────────
+
+describe('CM.MINEABLEMAKER', () => {
+  const { makeWorldMock, makeRepoMock } = require('./helpers');
+
+  function makeTile({ isWaterEdge = false, land = true } = {}) {
+    return {
+      isLand: () => land,
+      info: {
+        borderTop:   isWaterEdge,
+        borderLeft:  false,
+        borderRight: false,
+        borderDown:  false,
+      },
+      location: new CM.Point(100, 100),
+    };
+  }
+
+  test('returns a function', () => {
+    expect(typeof CM.MINEABLEMAKER(makeWorldMock(), makeRepoMock())).toBe('function');
+  });
+
+  test('does nothing for water tiles', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    maker(makeTile({ land: false }));
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('does not spawn reeds on non-coastal land tiles', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.001; // triggers all spawn paths
+    maker(makeTile({ isWaterEdge: false }));
+    CM.rng = origRng;
+    const reeds = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.Reed);
+    expect(reeds.length).toBe(0);
+  });
+
+  test('can spawn reeds on coastal (water-edge) tiles', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.001; // < 0.10 → triggers reed spawn
+    maker(makeTile({ isWaterEdge: true }));
+    CM.rng = origRng;
+    const reeds = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.Reed);
+    expect(reeds.length).toBeGreaterThan(0);
+  });
+
+  test('does not spawn reeds on coastal tile when rand >= 0.10', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.15; // >= 0.10 → no reed spawn
+    maker(makeTile({ isWaterEdge: true }));
+    CM.rng = origRng;
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('spawnCluster skips positions where getTile returns water', () => {
+    const world = makeWorldMock();
+    world.getChunk = jest.fn().mockReturnValue({
+      getTile: jest.fn().mockReturnValue({ isLand: () => false }),
+    });
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.001; // triggers stone spawn path
+    maker(makeTile({ isWaterEdge: false }));
+    CM.rng = origRng;
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('spawns stones on interior land tiles when rand < 0.01', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.005; // < 0.01 → stone path
+    maker(makeTile({ isWaterEdge: false }));
+    CM.rng = origRng;
+    const stones = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.Mineable && o.resourceType === 'STONE');
+    expect(stones.length).toBeGreaterThan(0);
+  });
+
+  test('spawns trees on interior land tiles when 0.01 <= rand < 0.03', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.02;
+    maker(makeTile({ isWaterEdge: false }));
+    CM.rng = origRng;
+    const trees = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.Mineable && o.resourceType === 'WOOD');
+    expect(trees.length).toBeGreaterThan(0);
   });
 });
