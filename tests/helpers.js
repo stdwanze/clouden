@@ -59,6 +59,7 @@ function makeWorldMock() {
   return {
     addObject:        jest.fn(),
     removeObject:     jest.fn(),
+    getObjects:       jest.fn().mockReturnValue([]),
     getHitables:      jest.fn().mockReturnValue([]),
     getHitablesByKey: jest.fn().mockReturnValue(undefined),
     addHitable:       jest.fn(),

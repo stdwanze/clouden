@@ -76,7 +76,7 @@ CM.OnScreenDocu = class OnScreenDoc{
         renderer.fillTextStatic("[H] Heilen  (braucht Bett)",               textX, hutY + gap14 + 4,   s14);
         renderer.fillTextStatic("[D] Bett bauen  (4 Holz)",                 textX, hutY + gap14*2 + 4, s14);
         renderer.fillTextStatic("[D] Crafting Station  (3 Holz + 5 Stein)", textX, hutY + gap14*3 + 4, s14);
-        renderer.fillTextStatic("[K] Bogen aufrüsten  (2 Holz + 3 Stein)",  textX, hutY + gap14*4 + 4, s14);
+        renderer.fillTextStatic("[K] Bogen aufr\u00fcsten  (2 Holz + 3 Stein)",  textX, hutY + gap14*4 + 4, s14);
         renderer.fillTextStatic("[K] Pfeile herstellen  (2 Holz, +3 Ammo)", textX, hutY + gap14*5 + 4, s14);
     }
 }

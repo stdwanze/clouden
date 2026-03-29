@@ -133,6 +133,16 @@ describe('CM.Mineable', () => {
             // base rect + hit flash + bar background + bar fill = 4
             expect(ctx.fillRect).toHaveBeenCalledTimes(4);
         });
+
+        test('uses renderer.zoom not this.z (blimp ascent bug)', () => {
+            const m = makeMineable('WOOD');
+            renderer.zoom = 1.0; // simulate sky zoom — differs from this.z = CM.GroundLevel (2.5)
+            const spy = jest.spyOn(renderer, 'drawRectangleZ');
+            m.draw(renderer);
+            spy.mock.calls.forEach(call => {
+                expect(call[5]).toBe(1.0); // 6th arg is z
+            });
+        });
     });
 });
 

@@ -264,7 +264,7 @@ describe('CM.PLAYERDEATH respawn dialog', () => {
     };
   }
   function makeWorld(objects) {
-    return { getObjects: jest.fn().mockReturnValue(objects), getChunk: jest.fn() };
+    return { getObjects: jest.fn().mockReturnValue(objects), getHitables: jest.fn().mockReturnValue([]), removeObject: jest.fn(), getChunk: jest.fn() };
   }
 
   test('sets respawnDialog to true when safe point exists', () => {

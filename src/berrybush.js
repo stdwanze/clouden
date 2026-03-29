@@ -13,7 +13,7 @@ CM.BerryBush = class BerryBush extends CM.Mineable {
     draw(renderer) {
         var x = this.position.x;
         var y = this.position.y;
-        var z = this.z;
+        var z = renderer.zoom;
         var c = this.berryColor;
 
         // bush shape (layered rects to suggest roundness)

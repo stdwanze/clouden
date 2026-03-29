@@ -31,23 +31,24 @@ CM.Mineable = class Mineable extends CM.MoveableObject {
     }
 
     draw(renderer) {
+        var z = renderer.zoom;
         if (this.image) {
             renderer.drawImage(this.image, this.position.x, this.position.y, this.sizeX, this.sizeY, 1);
         } else {
             var baseColor = this.resourceType === 'STONE' ? '#8a8a8a' : '#5a3010';
-            renderer.drawRectangleZ(this.position.x, this.position.y, this.sizeX, this.sizeY, baseColor, this.z);
+            renderer.drawRectangleZ(this.position.x, this.position.y, this.sizeX, this.sizeY, baseColor, z);
         }
 
         if (this.hitFlash > 0) {
             var alpha = (this.hitFlash / 8) * 0.45;
-            renderer.drawRectangleZ(this.position.x, this.position.y, this.sizeX, this.sizeY, 'rgba(255,255,255,' + alpha + ')', this.z);
+            renderer.drawRectangleZ(this.position.x, this.position.y, this.sizeX, this.sizeY, 'rgba(255,255,255,' + alpha + ')', z);
         }
 
         if (this.hitsReceived > 0) {
             var barY = this.position.y - 5;
             var remaining = (this.hitsRequired - this.hitsReceived) / this.hitsRequired;
-            renderer.drawRectangleZ(this.position.x, barY, this.sizeX, 3, '#333333', this.z);
-            renderer.drawRectangleZ(this.position.x, barY, this.sizeX * remaining, 3, '#ffcc00', this.z);
+            renderer.drawRectangleZ(this.position.x, barY, this.sizeX, 3, '#333333', z);
+            renderer.drawRectangleZ(this.position.x, barY, this.sizeX * remaining, 3, '#ffcc00', z);
         }
     }
 }

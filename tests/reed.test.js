@@ -75,6 +75,16 @@ describe('CM.Reed', () => {
       // stems (6) + progress bar (2) = 8+
       expect(calls).toBeGreaterThan(6);
     });
+
+    test('uses renderer.zoom not this.z (blimp ascent bug)', () => {
+      const r = makeReed();
+      renderer.zoom = 1.0; // simulate sky zoom — differs from this.z = CM.GroundLevel (2.5)
+      const spy = jest.spyOn(renderer, 'drawRectangleZ');
+      r.draw(renderer);
+      spy.mock.calls.forEach(call => {
+        expect(call[5]).toBe(1.0); // 6th arg is z
+      });
+    });
   });
 });
 
@@ -167,6 +177,16 @@ describe('CM.BerryBush', () => {
       b.draw(renderer);
       // bush (3) + berries (6) + progress bar (2) = 11+
       expect(ctx.fillRect.mock.calls.length).toBeGreaterThanOrEqual(9);
+    });
+
+    test('uses renderer.zoom not this.z (blimp ascent bug)', () => {
+      const b = makeBush();
+      renderer.zoom = 1.0; // simulate sky zoom — differs from this.z = CM.GroundLevel (2.5)
+      const spy = jest.spyOn(renderer, 'drawRectangleZ');
+      b.draw(renderer);
+      spy.mock.calls.forEach(call => {
+        expect(call[5]).toBe(1.0); // 6th arg is z
+      });
     });
   });
 });

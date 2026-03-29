@@ -12,7 +12,7 @@ CM.Reed = class Reed extends CM.Mineable {
     draw(renderer) {
         var x = this.position.x;
         var y = this.position.y;
-        var z = this.z;
+        var z = renderer.zoom;
 
         var stems = [
             { ox: 1, h: 13 },

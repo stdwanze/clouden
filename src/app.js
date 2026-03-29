@@ -536,7 +536,7 @@ CM.CloudEngine=    class CloudEngine{
             if (this.hutCraftOpen) {
                 title = 'Crafting Station';
                 var lvl = this.player.bowLevel;
-                lines.push({ font: lineFont, text: '[1] Bogen aufrüsten (+1)  Lvl ' + lvl + '\u2192' + (lvl+1) + '  (2 Holz + 3 Stein)', color: '#ccc' });
+                lines.push({ font: lineFont, text: '[1] Bogen aufr\u00fcsten (+1)  Lvl ' + lvl + '\u2192' + (lvl+1) + '  (2 Holz + 3 Stein)', color: '#ccc' });
                 lines.push({ font: lineFont, text: '[2] Pfeile herstellen  +3 Ammo  (2 Holz)', color: '#ccc' });
                 lines.push({ font: lineFont, text: '[ESC] Schlie\u00dfen', color: '#aaa' });
             } else if (this.hutDevelopOpen) {
