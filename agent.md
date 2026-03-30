@@ -109,8 +109,30 @@ var vertical = Math.abs(player.direction.y) > Math.abs(player.direction.x);
 var dx = Math.sign(player.direction.x); // -1, 0, oder 1
 ```
 
+## Canvas-Direktzeichnung für komplexe Formen (Blimp-Extras)
+
+`drawRectangleZ` reicht nicht für Kurven/Pfade. Für Bezier-Kurven etc. direkt auf `renderer.ctxt` zeichnen und Weltkoordinaten manuell umrechnen:
+
+```js
+var ctx = renderer.ctxt;
+var cw = renderer.canvas.width, ch = renderer.canvas.height;
+var vx = renderer.viewport.x,   vy = renderer.viewport.y;
+var z  = 3; // Blimp-z hardcoded
+
+function sx(wx) { return renderer.translateAndZoom(wx - vx, cw / 2, z); }
+function sy(wy) { return renderer.translateAndZoom(wy - vy, ch / 2, z); }
+
+ctx.save();
+ctx.beginPath();
+ctx.moveTo(sx(worldX), sy(worldY));
+// ... quadraticCurveTo etc. mit sx/sy umgerechnet
+ctx.restore();
+```
+
+**Wichtig:** `ctx.save()`/`ctx.restore()` verwenden, da `globalAlpha`, `strokeStyle` etc. sonst in anderen Draw-Calls überlaufen.
+
 ## Bekannte Eigenheiten
 
-- Blimp gezeichnet mit `drawImageZ(... z=3)` hardcoded — **nicht** der echte z-Wert des Blimps.
-  Position nutzt `renderer.zoom` (= player.z); da blimp.x ≈ player.x bleibt er zentriert.
-- Wind (`-0.01 px/frame`) wirkt nur wenn `blimp.z < GroundLevel` 
+- Blimp-Sprite gezeichnet mit `drawImageZ(... z=3)` hardcoded — **nicht** der echte z-Wert des Blimps. Alle Blimp-Extras (Kanone, Segel) müssen ebenfalls `z=3` verwenden um synchron zu bleiben.
+- **Wind** wirkt nur wenn `blimp.z < GroundLevel`. Stärke per Höhenschicht in `blimp.windLayers`. Segelmodus (`blimp.sailMode`) multipliziert den Wind mit 3×. Der Wind-Vergleich in `blimp.move()` berücksichtigt den Multiplikator: `x == wind.x * mult`.
+- **Menü-Pfeiltasten** müssen explizit im `keydown`-Listener an `handleInteractions` weitergeleitet werden — `letterKeys` feuert nur für Buchstabentasten, nicht für Pfeiltasten (37–40).

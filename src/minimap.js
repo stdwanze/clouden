@@ -100,6 +100,12 @@ CM.Minimap = class Minimap {
                 var p = toScreen(obj.position.x, obj.position.y);
                 ctx.fillStyle = '#ffdd00';
                 ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+            } else if (obj.isBridge) {
+                var p = toScreen(obj.position.x, obj.position.y);
+                var bw = obj.sizeX * scale;
+                var bh = obj.sizeY * scale;
+                ctx.fillStyle = '#8B5E3C';
+                ctx.fillRect(p.x, p.y, Math.max(2, bw), Math.max(2, bh));
             }
         });
 

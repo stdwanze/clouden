@@ -216,20 +216,25 @@ CM.CLOUDGEN = function (world,repo){
     return  function (startPosX,startPosY)
         {
             var maxX = world.getSizeX();
+            var maxY = world.getSizeY();
             var startPos = new CM.Point(startPosX,startPosY);
-            var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"),CM.SkyLevel,1);
-                c.setTicker( 
-                    function (startPos,speed)
-                {
-                    var s = startPos;
-                    return function (v){
-                    v.move(-1*speed,0);
-                    if(v.position.x < -500){
-                    v.move(s.x+maxX,0);
-                        console.log("reset");
-                    } 
-                    };
-                }(startPos, CM.rng()*5));
+
+            var layer = CM.WindLayers[Math.floor(CM.rng() * CM.WindLayers.length)];
+            var z = layer.zMin + CM.rng() * (layer.zMax - layer.zMin);
+            var wx = layer.wind.x;
+            var wy = layer.wind.y;
+            var speed = 0.5 + CM.rng() * 1.5;
+
+            var c = new CM.VehicleSprite(new CM.Point(startPos.x,startPos.y), repo.getImage("cloud"), z, 1);
+            c.setTicker(function(s, dx, dy, sp) {
+                return function(v) {
+                    v.move(dx * sp, dy * sp);
+                    if(dx < 0 && v.position.x < -500)  v.position.x = s.x + maxX;
+                    if(dx > 0 && v.position.x > maxX + 500) v.position.x = s.x - maxX;
+                    if(dy < 0 && v.position.y < -500)  v.position.y = s.y + maxY;
+                    if(dy > 0 && v.position.y > maxY + 500) v.position.y = s.y - maxY;
+                };
+            }(startPos, wx, wy, speed));
             return c;
         }
 }

@@ -12,6 +12,14 @@
     }
     #muteBtn { top: 155px; }
     #helpBtn { top: 201px; }
+    #gamepadIndicator {
+        position: absolute; right: 10px; top: 247px;
+        width: 36px; height: 36px; border-radius: 50%;
+        background: rgba(0,0,0,0.5); color: white;
+        border: 2px solid white; font-size: 20px;
+        display: none; align-items: center; justify-content: center;
+        z-index: 10; cursor: default;
+    }
     #muteBtn.muted { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.4); }
     #saveIndicator {
         position: absolute; top: 10px; left: 130px;
@@ -89,6 +97,7 @@
 <canvas id="playground" width="1280" height="800"></canvas>
 <button id="muteBtn">&#9835;</button>
 <button id="helpBtn">?</button>
+<div id="gamepadIndicator" title="Gamepad verbunden">&#x1F3AE;</div>
 <div id="saveIndicator">
     Spielstand
     <button id="deleteSaveBtn" title="Spielstand l&ouml;schen">&#x2715;</button>

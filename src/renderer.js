@@ -65,7 +65,9 @@ CM.Renderer = class Renderer {
     {
         var worldX = this.translateAndZoom(x1-this.viewport.x,this.canvas.width/2);
         var worldY = this.translateAndZoom(y1-this.viewport.y,this.canvas.height/2);
+        this.ctxt.imageSmoothingEnabled = false;
         this.ctxt.drawImage(image,worldX,worldY,sizex*z*scalingfactor, sizey*z*scalingfactor);
+        this.ctxt.imageSmoothingEnabled = true;
     }
     drawTile(image,x1,y1,sizex,sizey)
     {

@@ -3,7 +3,14 @@ CM.GroundLevel = 2.5;
 CM.SkyLevel = 1.75;
 CM.Max = 1;
 
+CM.WindLayers = [
+    { zMin: CM.SkyLevel + 0.35, zMax: CM.GroundLevel,     wind: { x: -0.06, y:  0.02 } }, // niedrig: SW
+    { zMin: CM.Max + 0.4,       zMax: CM.SkyLevel + 0.35, wind: { x:  0.08, y:  0.04 } }, // mittel: SO
+    { zMin: CM.Max,             zMax: CM.Max + 0.4,        wind: { x: -0.12, y:  0.0  } }, // hoch: W
+];
+
 CM.currentSeed = null;
+CM.gamepadActive = false;
 
 // Default: unseeded (replaced by initRng before world creation)
 CM.rng = Math.random.bind(Math);

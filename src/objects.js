@@ -232,67 +232,247 @@ CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
 CM.Blimp = class Blimp  extends CM.VehicleSprite{
     constructor(location,image)
     {
-        super(location,image,CM.GroundLevel,0.5);
+        super(location,image,CM.GroundLevel,1/6);
         this.scores = new CM.ScoreSet();
         this.scores.add(new CM.Fuel(30));
         this.scores.add(new CM.Ammo(30));
         this.scores.add(new CM.Health(30));
         
         this.consumptionEfficiancy = 0.01;
-        this.wind = new CM.Point(-0.01,0); //new CM.Point(0,0); 
+        this.windLayers = CM.WindLayers.map(function(l) {
+            return { zMin: l.zMin, zMax: l.zMax, wind: new CM.Point(l.wind.x, l.wind.y) };
+        });
+        this.wind = new CM.Point(0, 0);
+        this.sailMode = false;
         this.hitmanager = new CM.Hitable();
         this.dead = false;
-
-       
+        this.gunFlashFrames = 0;
+        this.gunDirection = null; // null = follow movement, CM.Point = independent aim
     }
    
 
+    getGunPivot() {
+        // Fester Aufhängepunkt: rechte Mitte des Blimps (Nase des Sprites)
+        return new CM.Point(this.position.x + this.sizeX, this.getMidPoint().y - 2);
+    }
+    getGunDirection() {
+        if(CM.gamepadActive) return this.gunDirection || this.getDirection();
+        return this.getDirection();
+    }
+    getFrontPoint() {
+        var dir = this.getGunDirection();
+        var len = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1;
+        var pivot = this.getGunPivot();
+        var barrelLen = 5; // Welteinheiten
+        return new CM.Point(
+            pivot.x + (dir.x / len) * barrelLen,
+            pivot.y + (dir.y / len) * barrelLen
+        );
+    }
+    triggerGunFlash() {
+        this.gunFlashFrames = 8;
+    }
     drawGun(renderer)
     {
-        if( this.mountedState ){
-            var direction = this.getDirection();
-            var start = this.getMidPoint();
+        if (!this.mountedState) return;
+        var direction = this.getGunDirection();
+        var pivot = this.getGunPivot();
+        var S = 3; // sprite scale factor — matches drawImageZ hardcoded z=3
+        var ctx = renderer.ctxt;
+        var cw = renderer.canvas.width, ch = renderer.canvas.height;
+        var vx = renderer.viewport.x, vy = renderer.viewport.y;
 
-            var sizex = direction.x;
-            var sizey = direction.y;
-            sizex >= 0 ? start.move(-1,-1) : start.move(0,-1);
-            if(direction.x == 0) sizex = 1;
-            if(direction.y == 0) sizey = 1;
-            if(direction.y > 3) sizey = 3;
-            if(direction.x > 3) sizex = 3;
-            
-            renderer.drawRectangleZ(start.x,start.y,sizex*1.5, sizey*1.5, "#59616d",3);
+        // anchor = top-left of blimp sprite on screen (same as drawImageZ uses this.zoom for translation)
+        var anchorX = renderer.translateAndZoom(this.position.x - vx, cw / 2);
+        var anchorY = renderer.translateAndZoom(this.position.y - vy, ch / 2);
+        // offset within sprite uses S=3 like drawImageZ does for sizing
+        function sx(wx) { return anchorX + (wx - this.position.x) * S; }
+        function sy(wy) { return anchorY + (wy - this.position.y) * S; }
+
+        var len = Math.sqrt(direction.x * direction.x + direction.y * direction.y) || 1;
+        var angle = Math.atan2(direction.y / len, direction.x / len);
+
+        var px = sx.call(this, pivot.x);
+        var py = sy.call(this, pivot.y);
+        var barrelLen = 5 * S;
+        var barrelH = 1.5 * S;
+        var baseR = 2 * S;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+
+        // Rohr: dunkle Umrisslinie
+        ctx.fillStyle = '#1e2226';
+        ctx.fillRect(-1, -barrelH / 2 - 1, barrelLen + 2, barrelH + 2);
+
+        // Rohr: Hauptkörper
+        ctx.fillStyle = '#4a5158';
+        ctx.fillRect(0, -barrelH / 2, barrelLen, barrelH);
+
+        // Rohr: Mündungsband (dicker Ring am Ende)
+        ctx.fillStyle = '#2e3338';
+        ctx.fillRect(barrelLen - 2 * S, -barrelH / 2 - 0.5, 2 * S, barrelH + 1);
+
+        // Rohr: Glanzstreifen oben
+        ctx.fillStyle = 'rgba(190, 210, 230, 0.38)';
+        ctx.fillRect(1, -barrelH / 2, barrelLen - 3, 1);
+
+        // Rohr: dunkle Mündungsöffnung
+        ctx.fillStyle = '#0d0f11';
+        ctx.beginPath();
+        ctx.arc(barrelLen, 0, barrelH * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sockel: äußerer Ring
+        ctx.fillStyle = '#2e3338';
+        ctx.beginPath();
+        ctx.arc(0, 0, baseR + 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sockel: Hauptfläche
+        ctx.fillStyle = '#6a737d';
+        ctx.beginPath();
+        ctx.arc(0, 0, baseR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sockel: Glanzpunkt
+        ctx.fillStyle = 'rgba(200, 220, 240, 0.40)';
+        ctx.beginPath();
+        ctx.arc(-baseR * 0.22, -baseR * 0.28, baseR * 0.52, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mündungsfeuer
+        if (this.gunFlashFrames > 0) {
+            var alpha = this.gunFlashFrames / 8;
+            ctx.fillStyle = 'rgba(255, 210, 60, ' + alpha + ')';
+            ctx.beginPath();
+            ctx.arc(barrelLen, 0, barrelH * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 255, 200, ' + (alpha * 0.8) + ')';
+            ctx.beginPath();
+            ctx.arc(barrelLen, 0, barrelH * 0.6, 0, Math.PI * 2);
+            ctx.fill();
         }
+
+        ctx.restore();
+    }
+    drawSails(renderer, side) {
+        if (!this.mountedState || !this.sailMode) return;
+        var mid = this.getMidPoint();
+        var S = 3; // matches drawImageZ hardcoded z=3
+        var ctx = renderer.ctxt;
+        var cw = renderer.canvas.width, ch = renderer.canvas.height;
+        var vx = renderer.viewport.x, vy = renderer.viewport.y;
+
+        var anchorX = renderer.translateAndZoom(this.position.x - vx, cw / 2);
+        var anchorY = renderer.translateAndZoom(this.position.y - vy, ch / 2);
+        var self = this;
+        function sx(wx) { return anchorX + (wx - self.position.x) * S; }
+        function sy(wy) { return anchorY + (wy - self.position.y) * S; }
+
+        function drawWing(rootX, rootY, dir, xs, ys) {
+            var rx = sx(rootX), ry = sy(rootY);
+
+            // mast
+            var mastTopX = rx + dir * 2 * xs * S, mastTopY = ry - 6.75 * ys * S;
+
+            ctx.strokeStyle = '#4a2a08';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(mastTopX, mastTopY);
+            ctx.stroke();
+
+            // spar tips (4 spars, fan outward)
+            var spars = [
+                { ex: rx + dir * 3.5 * xs * S, ey: ry - 8.5 * ys * S,  cx: rx + dir * 1.5 * xs * S, cy: ry - 7   * ys * S  }, // top
+                { ex: rx + dir * 8   * xs * S, ey: ry - 5   * ys * S,  cx: rx + dir * 3.5 * xs * S, cy: ry - 5.5 * ys * S  }, // upper-mid
+                { ex: rx + dir * 9.5 * xs * S, ey: ry - 0.5 * ys * S,  cx: rx + dir * 5   * xs * S, cy: ry - 1.5 * ys * S  }, // lower-mid
+                { ex: rx + dir * 7.5 * xs * S, ey: ry + 3   * ys * S,  cx: rx + dir * 4   * xs * S, cy: ry + 1.5 * ys * S  }, // bottom
+            ];
+
+            // membrane fill — trace outer edge along spar tips, back along root
+            ctx.fillStyle = 'rgba(180, 130, 50, 0.82)';
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            spars.forEach(function(s) {
+                ctx.quadraticCurveTo(s.cx, s.cy, s.ex, s.ey);
+            });
+            // close back along a shallow curve to root
+            ctx.quadraticCurveTo(rx + dir * 4 * xs * S, ry + 1 * ys * S, rx, ry);
+            ctx.closePath();
+            ctx.fill();
+
+            // membrane highlight (upper half)
+            ctx.fillStyle = 'rgba(220, 175, 80, 0.30)';
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.quadraticCurveTo(spars[0].cx, spars[0].cy, spars[0].ex, spars[0].ey);
+            ctx.quadraticCurveTo(spars[1].cx, spars[1].cy, spars[1].ex, spars[1].ey);
+            ctx.quadraticCurveTo(rx + dir * 5 * xs * S, ry - 2 * ys * S, rx, ry);
+            ctx.closePath();
+            ctx.fill();
+
+            // spar bones
+            ctx.strokeStyle = '#5a3010';
+            ctx.lineWidth = 1.5;
+            spars.forEach(function(s) {
+                ctx.beginPath();
+                ctx.moveTo(rx, ry);
+                ctx.quadraticCurveTo(s.cx, s.cy, s.ex, s.ey);
+                ctx.stroke();
+            });
+
+            // rivet
+            ctx.fillStyle = '#8b6030';
+            ctx.beginPath();
+            ctx.arc(rx, ry, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.save();
+        if (side === 'left')  drawWing(mid.x - 2, mid.y, -1, 0.2, 1.2);
+        if (side === 'right') drawWing(mid.x + 2, mid.y, +1, 0.35, 1.1);
+        ctx.restore();
     }
     draw(renderer)
     {
+        this.drawSails(renderer, 'left');
         super.draw(renderer);
-       
+        this.drawSails(renderer, 'right');
         this.drawGun(renderer);
-        
-        
         this.hitmanager.draw(this,renderer);
-
-
+    }
+    getWindForZ(z) {
+        for (var i = 0; i < this.windLayers.length; i++) {
+            var l = this.windLayers[i];
+            if (z <= l.zMax && z >= l.zMin) return l.wind;
+        }
+        return new CM.Point(0, 0);
     }
     tick(player, playerMoving)
     {
+        if (this.gunFlashFrames > 0) this.gunFlashFrames--;
         if(this.z < CM.GroundLevel)
         {
+            this.wind = this.getWindForZ(this.z);
+            var mult = this.sailMode ? 3.0 : 1.0;
+            var wx = this.wind.x * mult, wy = this.wind.y * mult;
             if(this.mountedState == true) {
                 if(player != null && !playerMoving) {
-                    player.move(this.wind.x, this.wind.y);
+                    player.move(wx, wy, false);
                 }
             } else {
-                this.move(this.wind.x, this.wind.y);
+                this.move(wx, wy);
             }
         }
     }
     move(x,y)
     {
-        if(x == this.wind.x && y == this.wind.y) {
+        var mult = this.sailMode ? 3.0 : 1.0;
+        if(x == this.wind.x * mult && y == this.wind.y * mult) {
             super.move(x,y);
-            
             return true;
         }
         if(this.scores.get("FUEL").getScore() > this.scores.get("FUEL").getMin()){

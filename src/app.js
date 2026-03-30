@@ -20,8 +20,9 @@ CM.CloudEngine=    class CloudEngine{
             this.notificationFrames = 0;
             this.minimap = new CM.Minimap();
             this.nearbyHut = null;
-            this.hutDevelopOpen = false;
-            this.hutCraftOpen = false;
+            this.hutMenuOpen = false;
+            this.hutMenuLevel = 'main';
+            this.hutMenuIndex = 0;
             this.respawnDialog = false;
             this.respawnAction = null;
             this.nearbyNPC = null;
@@ -38,6 +39,9 @@ CM.CloudEngine=    class CloudEngine{
         tickndraw(){
             var self = this;
 
+            // poll gamepad every frame, even when paused (so menus can be closed)
+            this.inputHandler.pollGamepad();
+
             if(!this.paused){
                 if(!this.over){
                     // --- tick phase (all movement before any drawing) ---
@@ -53,6 +57,7 @@ CM.CloudEngine=    class CloudEngine{
                     // interacte player with world
                     this.tryCollect();
                     this.tryRefuelBlimp();
+                    this.checkAutoHeal();
 
                     // tick all objects (wind/AI may move player)
                     var k = this.inputHandler.currentKeys;
@@ -117,6 +122,7 @@ CM.CloudEngine=    class CloudEngine{
                         var vScores = this.player.getMountScores().getAll();
                         this.osd.displayScores(vScores, "BOTTOM-LEFT", 100, "Blimp");
                         CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
+                        this.drawWindRose(this.player.vehicle);
                     }
                 }
                 else
@@ -126,7 +132,6 @@ CM.CloudEngine=    class CloudEngine{
             }
 
             this.inventory.draw(this.renderer);
-            this.osdocu.draw(this.renderer);
             if (this.notificationFrames > 0) {
                 var alpha = Math.min(1, this.notificationFrames / 20);
                 var ctx = this.renderer.ctxt;
@@ -140,18 +145,24 @@ CM.CloudEngine=    class CloudEngine{
                 this.renderer.fillTextStaticColor(this.notification, nx, ny, 16, 'rgba(200,240,200,' + alpha + ')');
                 this.notificationFrames--;
             }
+            var prevHut = this.nearbyHut;
             this.nearbyHut = null;
             this.nearbyNPC = null;
             var self2 = this;
             this.world.getObjects().forEach(function(obj) {
-                if (obj.isSafePoint && CM.distance(self2.player.position, obj.position) < 60) {
+                if (obj.isSafePoint && CM.distance(self2.player.position, obj.position) < 30) {
                     self2.nearbyHut = obj;
                 }
                 if (obj.isNPC && CM.distance(self2.player.position, obj.position) < 60) {
                     self2.nearbyNPC = obj;
                 }
             });
-            if (!this.nearbyHut) { this.hutDevelopOpen = false; this.hutCraftOpen = false; }
+            if (!prevHut && this.nearbyHut) {
+                CM.SaveLoad.save(this);
+                if (window.updateSaveIndicator) window.updateSaveIndicator();
+                this.notify('Spielstand gespeichert', 100);
+            }
+            if (!this.nearbyHut) this.hutMenuOpen = false;
             if (this.nearbyHut) this.drawHutOverlay(this.nearbyHut);
             if (this.nearbyNPC) this.drawNPCOverlay(this.nearbyNPC);
             this.drawActiveQuest();
@@ -169,6 +180,7 @@ CM.CloudEngine=    class CloudEngine{
                 _r.fillTextStaticColor(_hint, _hx + 12, _hy + 16, 13, '#aaddaa');
             }
             if (this.respawnDialog) this.drawRespawnDialog();
+            this.osdocu.draw(this.renderer);
 
             requestAnimFrame( function() {
                 self.tickndraw();
@@ -188,7 +200,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         tryMount(){
             var object = this.world.getNearestObject(this.player.getMidPoint(),"interactable");
-            var mounted = this.player.mount(object);
+            this.player.mount(object);
           
 
         }
@@ -211,8 +223,33 @@ CM.CloudEngine=    class CloudEngine{
                 }
                 return;
             }
+            if(obj.getTypeName() === 'HEALTH' && !this.player.isMounted()) {
+                if(this.player.isInRange(obj)) {
+                    var hp = this.player.getScores().get('HEALTH');
+                    if(hp.getScore() >= hp.getMax()) {
+                        this.inventory.addItem('HEALTH');
+                        this.world.removeObject(obj);
+                        CM.Sound.play('collect');
+                    } else {
+                        var collected = this.player.collect(obj);
+                        if(collected) { this.world.removeObject(obj); CM.Sound.play('collect'); }
+                    }
+                }
+                return;
+            }
             var collected = this.player.collect(obj);
             if(collected) { this.world.removeObject(obj); CM.Sound.play('collect'); }
+        }
+        checkAutoHeal() {
+            if(this.player.isMounted()) return;
+            var hp = this.player.getScores().get('HEALTH');
+            if(hp.getScore() / hp.getMax() >= 0.2) return;
+            var si = this.inventory.slots.findIndex(function(s) { return s && s.type === 'HEALTH'; });
+            if(si < 0) return;
+            hp.up(10);
+            this.inventory.slots[si].count--;
+            if(this.inventory.slots[si].count <= 0) this.inventory.slots[si] = null;
+            this.notify('Heiltrank automatisch angewendet!', 100);
         }
         tryRefuelBlimp() {
             if(this.player.isMounted()) return;
@@ -225,7 +262,6 @@ CM.CloudEngine=    class CloudEngine{
             blimp.scores.get('FUEL').up(slot.count * 20);
             this.inventory.slots[fi] = null;
             this.notify('Blimp aufgetankt!', 120);
-            CM.SaveLoad.save(this);
         }
         handleInteractions(k){
             if (this.respawnDialog) {
@@ -243,6 +279,24 @@ CM.CloudEngine=    class CloudEngine{
                 return;
             }
 
+            if (this.hutMenuOpen) {
+                if (k === 13) {
+                    var hitems = this.getHutItems(this.hutMenuLevel, this.nearbyHut);
+                    var hitem = hitems[this.hutMenuIndex];
+                    if (hitem && !hitem.disabled) hitem.action();
+                } else if (k === 37 || k === 38) {
+                    var hlen = this.getHutItems(this.hutMenuLevel, this.nearbyHut).length;
+                    this.hutMenuIndex = (this.hutMenuIndex - 1 + hlen) % hlen;
+                } else if (k === 39 || k === 40) {
+                    var hlen2 = this.getHutItems(this.hutMenuLevel, this.nearbyHut).length;
+                    this.hutMenuIndex = (this.hutMenuIndex + 1) % hlen2;
+                } else if (k === 27) {
+                    if (this.hutMenuLevel !== 'main') { this.hutMenuLevel = 'main'; this.hutMenuIndex = 0; }
+                    else this.hutMenuOpen = false;
+                }
+                return;
+            }
+
             if (this.buildMenuOpen) {
                 if (k === 13) {
                     var items = this.getBuildItems();
@@ -257,7 +311,7 @@ CM.CloudEngine=    class CloudEngine{
                     this.buildMenuIndex = Math.max(0, this.buildMenuIndex - 1);
                 } else if (k === 39) {
                     this.buildMenuIndex = Math.min(this.getBuildItems().length - 1, this.buildMenuIndex + 1);
-                } else if (k === 27) {
+                } else if (k === 27 || k === 76) {
                     this.buildMenuOpen = false;
                 }
                 return;
@@ -265,10 +319,18 @@ CM.CloudEngine=    class CloudEngine{
 
            switch(""+k)
             {
-                case "70" : this.tryNPCInteract(); break;
+                case "70" :
+                    if (this.player.isMounted()) {
+                        var v = this.player.vehicle;
+                        v.sailMode = !v.sailMode;
+                        this.notify(v.sailMode ? 'Segel gesetzt!' : 'Segel eingeholt!', 90);
+                    } else {
+                        this.tryNPCInteract();
+                    }
+                    break;
                 case "66" : {
-                    if (this.player.isMounted()) { this.player.dismount(); CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); }
-                    else { this.tryMount(); CM.Sound.play('mount'); CM.Sound.play('blimp_hum'); }
+                    if (this.player.isMounted()) { this.player.vehicle.sailMode = false; this.player.dismount(); this.inputHandler._aimTarget = this.player; CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); }
+                    else { this.tryMount(); this.inputHandler._aimTarget = this.player.isMounted() ? this.player.vehicle : this.player; CM.Sound.play('mount'); CM.Sound.play('blimp_hum'); }
                     break;
                 }
                 case "67" : this.player.fire(); break;
@@ -279,29 +341,15 @@ CM.CloudEngine=    class CloudEngine{
                     if (this.buildMenuOpen) this.buildMenuIndex = 0;
                     break;
                 case "77" : CM.Sound.toggleMute(); break;
-                case "72" : this.tryHutHeal(); break;
-                case "75" :
-                    if (this.nearbyHut && this.nearbyHut.hasCraftingStation) this.hutCraftOpen = !this.hutCraftOpen;
-                    break;
-                case "68" : this.tryHutDevelop(); break;
-                case "49" :
-                    if (this.hutCraftOpen) this.tryBowUpgrade();
-                    else if (this.hutDevelopOpen) this.tryBuildBed();
-                    break;
-                case "50" :
-                    if (this.hutCraftOpen) this.tryCraftArrows();
-                    else if (this.hutDevelopOpen) this.tryBuildCraftingStation();
-                    break;
-                case "27" :
-                    if (this.hutCraftOpen) this.hutCraftOpen = false;
-                    else this.hutDevelopOpen = false;
+                case "72" :
+                    if (this.nearbyHut) { this.hutMenuOpen = true; this.hutMenuLevel = 'main'; this.hutMenuIndex = 0; }
                     break;
 
             }
         }
-        handleMove(k,currentlyPressed)
+        handleMove(_k,currentlyPressed)
         {
-            if (this.buildMenuOpen) return;
+            if (this.buildMenuOpen || this.hutMenuOpen) return;
             var moving = false;
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
@@ -315,7 +363,7 @@ CM.CloudEngine=    class CloudEngine{
             if (moving && !this.player.isMounted()) CM.Sound.footstep();
             else if (!moving) CM.Sound.resetFootstep();
         }
-        handleStop(k, currentlyPressed)
+        handleStop(_k, currentlyPressed)
         {
             if(currentlyPressed.filter(_ => _ == true).length == 0)
             {
@@ -355,10 +403,22 @@ CM.CloudEngine=    class CloudEngine{
             var dy = dir.y !== 0 ? Math.sign(dir.y) : 0;
             var mx = Math.floor(p.sizeX / 2);
             var my = Math.floor(p.sizeY / 2);
-            for (var dist = 6; dist <= 52; dist += 4) {
+            var bridges = this.world.getObjects().filter(function(o) { return o.isBridge; });
+            var foundWater = false;
+            for (var dist = 6; dist <= 84; dist += 4) {
                 var pt = new CM.Point(p.position.x + mx + dx * dist, p.position.y + my + dy * dist);
                 var tile = tileAccess(pt);
-                if (tile && !tile.isLand()) return tile;
+                if (!tile) break;
+                if (tile.isLand()) {
+                    if (foundWater) break;
+                    continue;
+                }
+                foundWater = true;
+                var covered = bridges.some(function(b) {
+                    return pt.x >= b.position.x && pt.x < b.position.x + b.sizeX &&
+                           pt.y >= b.position.y && pt.y < b.position.y + b.sizeY;
+                });
+                if (!covered) return tile;
             }
             return null;
         }
@@ -405,8 +465,6 @@ CM.CloudEngine=    class CloudEngine{
             slots[bi].count -= 1; if (slots[bi].count === 0) slots[bi] = null;
 
             this.world.addObject(new CM.Vogelscheuche(this.player.position.clone()));
-            CM.SaveLoad.save(this);
-            if (window.updateSaveIndicator) window.updateSaveIndicator();
             this.notify('Vogelscheuche gebaut!');
         }
         notify(text, frames) {
@@ -418,10 +476,6 @@ CM.CloudEngine=    class CloudEngine{
             this.player.getScores().get("HEALTH").score = 10;
             this.notify('Ausgeruht! HP wiederhergestellt.', 120);
             CM.SaveLoad.save(this);
-        }
-        tryHutDevelop() {
-            if (!this.nearbyHut) return;
-            this.hutDevelopOpen = !this.hutDevelopOpen;
         }
         tryBowUpgrade() {
             if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
@@ -510,7 +564,6 @@ CM.CloudEngine=    class CloudEngine{
             if (!npc.questAccepted) {
                 npc.questAccepted = true;
                 this.notify('Auftrag angenommen: ' + quest.text, 180);
-                CM.SaveLoad.save(this);
                 return;
             }
             var slots = this.inventory.slots;
@@ -530,7 +583,6 @@ CM.CloudEngine=    class CloudEngine{
             npc.questIndex++;
             npc.questAccepted = false;
             this.notify('Auftrag erf\u00fcllt! Belohnung: ' + quest.rewardText, 200);
-            CM.SaveLoad.save(this);
         }
         drawNPCOverlay(npc) {
             var quest = npc.getQuest();
@@ -620,66 +672,308 @@ CM.CloudEngine=    class CloudEngine{
             ctx.fillText(line2, boxX + pad, boxY + 36);
             ctx.restore();
         }
+        getHutItems(level, hut) {
+            var self = this;
+            if (level === 'develop') return [
+                {
+                    name: 'Bett',
+                    sub: hut.hasBed ? '(gebaut)' : '4 Holz',
+                    disabled: hut.hasBed,
+                    action: function() { self.tryBuildBed(); },
+                    drawPict: function(ctx, cx, cy, dis) {
+                        var c = dis ? '#333' : '#7a5030';
+                        // frame
+                        ctx.fillStyle = c; ctx.fillRect(cx - 18, cy - 6, 36, 12);
+                        // headboard
+                        ctx.fillStyle = dis ? '#2a2a2a' : '#5a3010'; ctx.fillRect(cx - 18, cy - 10, 7, 14);
+                        // footboard
+                        ctx.fillStyle = dis ? '#2a2a2a' : '#5a3010'; ctx.fillRect(cx + 11, cy - 7, 5, 11);
+                        // mattress
+                        ctx.fillStyle = dis ? '#444' : '#c8b08a'; ctx.fillRect(cx - 10, cy - 5, 20, 9);
+                        // pillow
+                        ctx.fillStyle = dis ? '#555' : '#ede8d8'; ctx.fillRect(cx - 9, cy - 4, 7, 5);
+                    }
+                },
+                {
+                    name: 'Crafting Station',
+                    sub: hut.hasCraftingStation ? '(gebaut)' : '3 Holz + 5 Stein',
+                    disabled: hut.hasCraftingStation,
+                    action: function() { self.tryBuildCraftingStation(); },
+                    drawPict: function(ctx, cx, cy, dis) {
+                        var top = dis ? '#333' : '#6b3a14';
+                        var leg = dis ? '#2a2a2a' : '#4a2008';
+                        var tool = dis ? '#444' : '#aaaaaa';
+                        // tabletop
+                        ctx.fillStyle = top; ctx.fillRect(cx - 20, cy - 8, 40, 5);
+                        // legs
+                        ctx.fillStyle = leg; ctx.fillRect(cx - 18, cy - 3, 4, 10);
+                        ctx.fillStyle = leg; ctx.fillRect(cx + 14, cy - 3, 4, 10);
+                        // tools on top: hammer handle
+                        ctx.fillStyle = tool; ctx.fillRect(cx - 8, cy - 16, 2, 9);
+                        // hammer head
+                        ctx.fillStyle = dis ? '#555' : '#888'; ctx.fillRect(cx - 11, cy - 17, 8, 4);
+                        // wrench
+                        ctx.fillStyle = tool; ctx.fillRect(cx + 4, cy - 15, 2, 8);
+                        ctx.fillStyle = tool; ctx.fillRect(cx + 2, cy - 15, 6, 2);
+                        ctx.fillStyle = tool; ctx.fillRect(cx + 2, cy - 8,  6, 2);
+                    }
+                }
+            ];
+            if (level === 'craft') return [
+                {
+                    name: 'Bogen aufr\u00fcsten',
+                    sub: '2 Holz + 3 Stein  Lvl ' + this.player.bowLevel + '\u2192' + (this.player.bowLevel + 1),
+                    action: function() { self.tryBowUpgrade(); },
+                    drawPict: function(ctx, cx, cy) {
+                        // bow arc
+                        ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(cx, cy, 14, Math.PI * 0.6, Math.PI * 1.4); ctx.stroke();
+                        // string
+                        ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(cx - 8, cy - 11); ctx.lineTo(cx - 8, cy + 11); ctx.stroke();
+                        // arrow
+                        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 14, cy); ctx.stroke();
+                        ctx.fillStyle = '#888'; ctx.fillRect(cx + 10, cy - 2, 6, 4);
+                    }
+                },
+                {
+                    name: 'Pfeile herstellen',
+                    sub: '2 Holz  (+3 Ammo)',
+                    action: function() { self.tryCraftArrows(); },
+                    drawPict: function(ctx, cx, cy) {
+                        for (var a = 0; a < 3; a++) {
+                            var ay = cy - 8 + a * 8;
+                            ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+                            ctx.beginPath(); ctx.moveTo(cx - 14, ay); ctx.lineTo(cx + 10, ay); ctx.stroke();
+                            ctx.fillStyle = '#888'; ctx.fillRect(cx + 7, ay - 2, 5, 4);
+                            ctx.fillStyle = '#cc8844'; ctx.fillRect(cx - 16, ay - 2, 4, 4);
+                        }
+                    }
+                }
+            ];
+            // main
+            var items = [];
+            items.push({
+                name: 'Heilen',
+                sub: hut.hasBed ? 'HP wiederherstellen' : '(kein Bett)',
+                disabled: !hut.hasBed,
+                action: function() { self.tryHutHeal(); self.hutMenuOpen = false; },
+                drawPict: function(ctx, cx, cy, dis) {
+                    // heart
+                    var c = dis ? '#444' : '#dd3333';
+                    ctx.fillStyle = c;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy + 10);
+                    ctx.bezierCurveTo(cx - 18, cy - 2, cx - 18, cy - 14, cx, cy - 6);
+                    ctx.bezierCurveTo(cx + 18, cy - 14, cx + 18, cy - 2, cx, cy + 10);
+                    ctx.fill();
+                    // cross
+                    ctx.fillStyle = dis ? '#333' : '#ffffff';
+                    ctx.fillRect(cx - 1, cy - 4, 3, 9);
+                    ctx.fillRect(cx - 4, cy - 1, 9, 3);
+                }
+            });
+            items.push({
+                name: 'Entwickeln',
+                sub: 'Bett, Crafting Station',
+                action: function() { self.hutMenuLevel = 'develop'; self.hutMenuIndex = 0; },
+                drawPict: function(ctx, cx, cy) {
+                    // hammer
+                    ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy - 4, 4, 14);
+                    ctx.fillStyle = '#999'; ctx.fillRect(cx - 8, cy - 10, 16, 8);
+                    ctx.fillStyle = '#bbb'; ctx.fillRect(cx - 6, cy - 9, 4, 6);
+                }
+            });
+            if (hut.hasCraftingStation) items.push({
+                name: 'Craften',
+                sub: 'Bogen, Pfeile',
+                action: function() { self.hutMenuLevel = 'craft'; self.hutMenuIndex = 0; },
+                drawPict: function(ctx, cx, cy) {
+                    ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(cx, cy, 12, Math.PI * 0.6, Math.PI * 1.4); ctx.stroke();
+                    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(cx - 7, cy - 9); ctx.lineTo(cx - 7, cy + 9); ctx.stroke();
+                    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(cx - 7, cy); ctx.lineTo(cx + 12, cy); ctx.stroke();
+                    ctx.fillStyle = '#888'; ctx.fillRect(cx + 9, cy - 2, 5, 4);
+                }
+            });
+            return items;
+        }
         drawHutOverlay(hut) {
+            if (!this.hutMenuOpen) {
+                // proximity hint
+                var _ctx = this.renderer.ctxt;
+                var _hint = '[H] Blockh\u00fctte';
+                _ctx.font = '12px monospace';
+                var _hw = _ctx.measureText(_hint).width + 20;
+                var _hx = Math.floor((this.renderer.getScreenWidth() - _hw) / 2);
+                var _hy = this.renderer.getScreenHeight() - 38;
+                this.renderer.drawRectangleStatic(_hx, _hy, _hw, 22, 'rgba(0,0,0,0.55)');
+                this.renderer.fillTextStaticColor(_hint, _hx + 10, _hy + 15, 12, '#d4b87a');
+                return;
+            }
+
             var ctx = this.renderer.ctxt;
             var sw = this.renderer.getScreenWidth();
             var sh = this.renderer.getScreenHeight();
-            var pad = 18;
+            var items = this.getHutItems(this.hutMenuLevel, hut);
+
+            var CARD_W = 140;
+            var CARD_H = 104;
+            var CARD_GAP = 16;
+            var PAD = 24;
+            var TITLE_H = 30;
+            var HINT_H = 22;
+
+            var titles = { main: 'Blockh\u00fctte', develop: 'Entwickeln', craft: 'Crafting Station' };
+            var title = titles[this.hutMenuLevel] || 'Blockh\u00fctte';
+
+            var panelW = items.length * CARD_W + (items.length - 1) * CARD_GAP + PAD * 2;
+            var panelH = TITLE_H + CARD_H + HINT_H + PAD * 2;
+            var px = Math.floor((sw - panelW) / 2);
+            var py = Math.floor((sh - panelH) / 2);
 
             ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, sw, sh);
 
-            // collect lines to measure
-            var titleFont = 'bold 13px monospace';
-            var lineFont  = '12px monospace';
-            var lines = [];
-            var title = 'Blockh\u00fctte';
-            if (this.hutCraftOpen) {
-                title = 'Crafting Station';
-                var lvl = this.player.bowLevel;
-                lines.push({ font: lineFont, text: '[1] Bogen aufr\u00fcsten (+1)  Lvl ' + lvl + '\u2192' + (lvl+1) + '  (2 Holz + 3 Stein)', color: '#ccc' });
-                lines.push({ font: lineFont, text: '[2] Pfeile herstellen  +3 Ammo  (2 Holz)', color: '#ccc' });
-                lines.push({ font: lineFont, text: '[ESC] Schlie\u00dfen', color: '#aaa' });
-            } else if (this.hutDevelopOpen) {
-                lines.push({ font: lineFont, text: '[ESC] Schlie\u00dfen', color: '#aaa' });
-                lines.push({ font: lineFont, text: hut.hasBed ? '[1] Bett (gebaut)' : '[1] Bett bauen  (4 Holz)', color: hut.hasBed ? '#555' : '#ccc' });
-                lines.push({ font: lineFont, text: hut.hasCraftingStation ? '[2] Crafting Station (gebaut)' : '[2] Crafting Station  (3 Holz + 5 Stein)', color: hut.hasCraftingStation ? '#555' : '#ccc' });
-            } else {
-                lines.push({ font: lineFont, text: hut.hasBed ? '[H] Heilen' : '[H] Heilen  (kein Bett)', color: hut.hasBed ? '#cfc' : '#555' });
-                if (hut.hasCraftingStation) lines.push({ font: lineFont, text: '[K] Craften', color: '#cfc' });
-                lines.push({ font: lineFont, text: '[D] Entwickeln', color: '#ccc' });
-            }
-
-            ctx.font = titleFont;
-            var maxW = ctx.measureText(title).width;
-            lines.forEach(function(l) { ctx.font = l.font; maxW = Math.max(maxW, ctx.measureText(l.text).width); });
-
-            var W = maxW + pad * 2;
-            var H = 22 + lines.length * 22 + pad;
-            var ox = Math.floor((sw - W) / 2);
-            var oy = sh - H - 20;
-
-            ctx.fillStyle = 'rgba(20,20,30,0.82)';
-            this.roundRect(ctx, ox, oy, W, H, 8);
+            ctx.fillStyle = 'rgba(18,15,10,0.96)';
+            this.roundRect(ctx, px, py, panelW, panelH, 10);
             ctx.fill();
-            ctx.strokeStyle = 'rgba(180,160,100,0.7)';
+            ctx.strokeStyle = 'rgba(180,160,100,0.6)';
             ctx.lineWidth = 1.5;
-            this.roundRect(ctx, ox, oy, W, H, 8);
+            this.roundRect(ctx, px, py, panelW, panelH, 10);
             ctx.stroke();
 
-            var tx = ox + pad;
-            var ty = oy + 22;
-            ctx.font = titleFont;
+            ctx.font = 'bold 14px monospace';
             ctx.fillStyle = '#d4b87a';
-            ctx.fillText(title, tx, ty);
-            ty += 22;
+            ctx.fillText(title, px + PAD, py + 20);
 
-            lines.forEach(function(l) {
-                ctx.font = l.font;
-                ctx.fillStyle = l.color;
-                ctx.fillText(l.text, tx, ty);
-                ty += 22;
-            });
+            var cardY = py + TITLE_H + PAD;
 
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var cardX = px + PAD + i * (CARD_W + CARD_GAP);
+                var sel = i === this.hutMenuIndex;
+                var dis = !!item.disabled;
+
+                ctx.fillStyle = dis ? 'rgba(20,20,20,0.7)' : sel ? 'rgba(50,40,20,0.9)' : 'rgba(25,22,15,0.9)';
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6);
+                ctx.fill();
+                ctx.strokeStyle = dis ? 'rgba(60,60,60,0.4)' : sel ? 'rgba(220,190,100,0.9)' : 'rgba(100,80,40,0.5)';
+                ctx.lineWidth = sel ? 2 : 1;
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6);
+                ctx.stroke();
+
+                ctx.font = 'bold 12px monospace';
+                ctx.fillStyle = dis ? '#555' : sel ? '#ffe0a0' : '#c4a060';
+                var nameW = ctx.measureText(item.name).width;
+                ctx.fillText(item.name, cardX + Math.floor((CARD_W - nameW) / 2), cardY + 18);
+
+                if (item.drawPict) {
+                    ctx.save();
+                    item.drawPict(ctx, Math.floor(cardX + CARD_W / 2), cardY + 56, dis);
+                    ctx.restore();
+                }
+
+                if (item.sub) {
+                    ctx.font = '10px monospace';
+                    ctx.fillStyle = dis ? '#444' : '#998060';
+                    var subW = ctx.measureText(item.sub).width;
+                    ctx.fillText(item.sub, cardX + Math.floor((CARD_W - subW) / 2), cardY + 92);
+                }
+            }
+
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#556677';
+            var back = this.hutMenuLevel !== 'main' ? '   ESC zur\u00fcck' : '   ESC schlie\u00dfen';
+            var hint = '\u2190 \u2192 ausw\u00e4hlen   ENTER best\u00e4tigen' + back;
+            var hintW = ctx.measureText(hint).width;
+            ctx.fillText(hint, px + Math.floor((panelW - hintW) / 2), py + panelH - 8);
+            ctx.restore();
+        }
+        drawWindRose(blimp) {
+            var ctx = this.renderer.ctxt;
+            var sw = this.renderer.getScreenWidth();
+            var mm = 120 + 16; // minimap size + margin
+            var R = 36;
+            var cx = sw - 16 - mm - 16 - R;
+            var cy = 16 + R;
+
+            // background circle
+            ctx.save();
+            ctx.fillStyle = 'rgba(10,12,20,0.7)';
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(140,160,200,0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+
+            // cardinal labels
+            ctx.font = '8px monospace';
+            ctx.fillStyle = 'rgba(180,190,210,0.7)';
+            ctx.textAlign = 'center';
+            ctx.fillText('N', cx,      cy - R + 9);
+            ctx.fillText('S', cx,      cy + R - 2);
+            ctx.fillText('W', cx - R + 4, cy + 3);
+            ctx.fillText('O', cx + R - 4, cy + 3);
+
+            // draw all wind layers as faint arcs
+            var layers = blimp.windLayers;
+            var layerColors = ['rgba(100,180,255,0.25)', 'rgba(100,255,180,0.25)', 'rgba(255,200,100,0.25)'];
+            for (var i = 0; i < layers.length; i++) {
+                var w = layers[i].wind;
+                var len = Math.sqrt(w.x*w.x + w.y*w.y);
+                if (len === 0) continue;
+                var nx = w.x / len, ny = w.y / len;
+                var r = 20 + i * 5;
+                ctx.strokeStyle = layerColors[i];
+                ctx.lineWidth = 3 + i;
+                ctx.beginPath();
+                ctx.moveTo(cx - nx * r * 0.3, cy - ny * r * 0.3);
+                ctx.lineTo(cx + nx * r, cy + ny * r);
+                ctx.stroke();
+            }
+
+            // active wind arrow
+            var wind = blimp.wind;
+            var wlen = Math.sqrt(wind.x*wind.x + wind.y*wind.y);
+            if (wlen > 0) {
+                var wx = wind.x / wlen, wy = wind.y / wlen;
+                var arrowLen = R - 8;
+                var ax = cx + wx * arrowLen, ay = cy + wy * arrowLen;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ax, ay); ctx.stroke();
+                // arrowhead
+                var angle = Math.atan2(wy, wx);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(ax - Math.cos(angle - 0.4) * 7, ay - Math.sin(angle - 0.4) * 7);
+                ctx.lineTo(ax - Math.cos(angle + 0.4) * 7, ay - Math.sin(angle + 0.4) * 7);
+                ctx.closePath(); ctx.fill();
+            } else {
+                // no wind at this altitude
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy - 6); ctx.lineTo(cx + 6, cy + 6);
+                ctx.moveTo(cx + 6, cy - 6); ctx.lineTo(cx - 6, cy + 6);
+                ctx.stroke();
+            }
+
+            // altitude indicator on right side of rose
+            var altLabel = blimp.z >= CM.GroundLevel ? 'Boden' :
+                           blimp.z >= CM.SkyLevel    ? 'Tief'  :
+                           blimp.z >= CM.Max + 0.4   ? 'Mittel': 'Hoch';
+            ctx.font = '8px monospace';
+            ctx.fillStyle = '#aabbcc';
+            ctx.textAlign = 'center';
+            ctx.fillText(altLabel, cx, cy + R + 11);
+
+            ctx.textAlign = 'left';
             ctx.restore();
         }
         getBuildItems() {
@@ -868,6 +1162,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.setChunksCachedCallback(CM.ADDENEMYMAKER(this.world,this.imagerepo));
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
+                this.inputHandler._aimTarget = this.player;
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
                 var _world = this.world;
                 this.player.setBridgeRetriever(function(pos) {
@@ -906,12 +1201,14 @@ CM.CloudEngine=    class CloudEngine{
                 })();
                 this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
+                this.inputHandler.onGamepadConnected = null;
+                this.inputHandler.onGamepadDisconnected = null;
                 var self3 = this;
                 this.inputHandler.on("keydown", function(k) {
                     if (k === 13 || k === 27 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
-                    if (self3.buildMenuOpen && (k === 37 || k === 39)) self3.handleInteractions(k);
+                    if ((self3.buildMenuOpen || self3.hutMenuOpen) && (k === 37 || k === 38 || k === 39 || k === 40)) self3.handleInteractions(k);
                 });
-                this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo);
+                this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo, this.inputHandler);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
 
                 if (CM.SaveLoad.load(this)) this.notify('Spielstand geladen');

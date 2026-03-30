@@ -16,6 +16,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         this.scores.add(new CM.Coins());
 
         this.direction = new CM.Point(6,0);
+        this.gunDirection = null;
         this.dead = false;
         this.hitFlashFrames = 0;
         this.bowLevel = 0;
@@ -43,15 +44,18 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         
         var ammoScore = this.isMounted() ? this.vehicle.scores.get("AMMO"):  this.scores.get("AMMO");
         var type = this.isMounted() ? "BLIMBGUN" : "HANDGUN";
-        var midPoint = this.isMounted() ? this.vehicle.getMidPoint() : this.getMidPoint();
+        var midPoint = this.isMounted() ? this.vehicle.getFrontPoint() : this.getMidPoint();
         var z = this.isMounted() ? this.vehicle.z : this.z;
         if(ammoScore.getScore() > ammoScore.getMin())
         {
-    
+
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
-            this.fireBallMaker(midPoint, z, type, new CM.Point(this.direction.x*2,this.direction.y*2),source, this.bowLevel);
+            var gunDir = this.isMounted() ? this.vehicle.gunDirection : this.gunDirection;
+            var aimDir = (CM.gamepadActive && gunDir) ? gunDir : this.direction;
+            this.fireBallMaker(midPoint, z, type, new CM.Point(aimDir.x*2,aimDir.y*2),source, this.bowLevel);
             ammoScore.reduce();
             CM.Sound.play(this.isMounted() ? 'shoot_blimp' : 'shoot');
+            if(this.isMounted()) this.vehicle.triggerGunFlash();
         }
     }   
     hit(strength)
@@ -143,10 +147,10 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     stop(){
         this.sprite.toggleAnimation(false);
     }
-    move(x,y)
-    {   
+    move(x,y,updateDirection)
+    {
 
-        if(x !== 0 || y !== 0) this.direction = new CM.Point(x,y);
+        if(updateDirection !== false && (x !== 0 || y !== 0)) this.direction = new CM.Point(x,y);
 
         if(this.isMounted())
         {
