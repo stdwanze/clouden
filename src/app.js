@@ -25,6 +25,9 @@ CM.CloudEngine=    class CloudEngine{
             this.respawnDialog = false;
             this.respawnAction = null;
             this.nearbyNPC = null;
+            this.buildMenuOpen = false;
+            this.buildMenuIndex = 0;
+            this.bridgePlacementMode = false;
         }
 
         run(){
@@ -37,33 +40,42 @@ CM.CloudEngine=    class CloudEngine{
 
             if(!this.paused){
                 if(!this.over){
-                    // update renderer
-                    this.renderer.setZoom(this.player.z);
-                    this.renderer.clear();
-                    this.renderer.updatePos(this.player.position);
-                    this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
-
+                    // --- tick phase (all movement before any drawing) ---
 
                     // handle movement every frame for smooth input
                     this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
                     var heldKeys = this.inputHandler.currentKeys;
-                    if (heldKeys[65]) this.player.ascend(0.01);
-                    if (heldKeys[83]) this.player.descend(0.01);
+                    if (!this.buildMenuOpen) {
+                        if (heldKeys[65]) this.player.ascend(0.01);
+                        if (heldKeys[83]) this.player.descend(0.01);
+                    }
 
                     // interacte player with world
                     this.tryCollect();
                     this.tryRefuelBlimp();
+
+                    // tick all objects (wind/AI may move player)
+                    var k = this.inputHandler.currentKeys;
+                    var playerMoving = !!(k[37] || k[38] || k[39] || k[40]);
+                    this.world.getObjects().forEach(element => {
+                        element.tick(this.player, playerMoving);
+                    });
+                    this.player.tick();
+
+                    // --- draw phase: update viewport AFTER all movement ---
+                    this.renderer.setZoom(this.player.z);
+                    this.renderer.clear();
+                    this.renderer.updatePos(this.player.position);
+                    this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
 
                     // draw world
                     this.world.getScene(this.player.position).forEach(element => {
                         this.renderer.draw(element);
                     });
 
-
                     // draw movableobjects
                     this.world.getObjects().forEach(element =>
                     {
-                        element.tick(this.player);
                         if(this.player.z >= element.z+0.3)
                         {
                             this.renderer.lighter()
@@ -73,8 +85,20 @@ CM.CloudEngine=    class CloudEngine{
                     });
 
                     //draw Player
-                    this.player.tick();
                     this.renderer.draw(this.player);
+
+                    // Bridge preview
+                    var _showBridgePreview = this.bridgePlacementMode ||
+                        (this.buildMenuOpen && this.getBuildItems()[this.buildMenuIndex].id === 'bridge');
+                    if (_showBridgePreview) {
+                        var _previewTile = this._getBridgeWaterTile();
+                        if (_previewTile) {
+                            var _vertical = Math.abs(this.player.direction.y) > Math.abs(this.player.direction.x);
+                            this.renderer.ctxt.globalAlpha = 0.4;
+                            new CM.Bridge(new CM.Point(_previewTile.location.x, _previewTile.location.y), _vertical).draw(this.renderer);
+                            this.renderer.ctxt.globalAlpha = 1.0;
+                        }
+                    }
 
                     // hit flash overlay
                     if(this.player.hitFlashFrames > 0) {
@@ -132,6 +156,18 @@ CM.CloudEngine=    class CloudEngine{
             if (this.nearbyNPC) this.drawNPCOverlay(this.nearbyNPC);
             this.drawActiveQuest();
             this.minimap.draw(this.renderer, this.player, this.world);
+            if (this.buildMenuOpen) this.drawBuildMenu();
+            if (this.bridgePlacementMode) {
+                var _r = this.renderer;
+                var _hint = '[ENTER] Br\u00fccke bauen  [ESC] Abbrechen';
+                var _ctx = _r.ctxt;
+                _ctx.font = '13px monospace';
+                var _hw = _ctx.measureText(_hint).width + 24;
+                var _hx = Math.floor((_r.getScreenWidth() - _hw) / 2);
+                var _hy = _r.getScreenHeight() - 38;
+                _r.drawRectangleStatic(_hx, _hy, _hw, 24, 'rgba(0,0,0,0.6)');
+                _r.fillTextStaticColor(_hint, _hx + 12, _hy + 16, 13, '#aaddaa');
+            }
             if (this.respawnDialog) this.drawRespawnDialog();
 
             requestAnimFrame( function() {
@@ -201,6 +237,32 @@ CM.CloudEngine=    class CloudEngine{
                 return;
             }
 
+            if (this.bridgePlacementMode) {
+                if (k === 13) { this.tryBuildBridge(); this.bridgePlacementMode = false; }
+                else if (k === 27) { this.bridgePlacementMode = false; }
+                return;
+            }
+
+            if (this.buildMenuOpen) {
+                if (k === 13) {
+                    var items = this.getBuildItems();
+                    if (items[this.buildMenuIndex].id === 'bridge') {
+                        this.buildMenuOpen = false;
+                        this.bridgePlacementMode = true;
+                    } else {
+                        items[this.buildMenuIndex].build();
+                        this.buildMenuOpen = false;
+                    }
+                } else if (k === 37) {
+                    this.buildMenuIndex = Math.max(0, this.buildMenuIndex - 1);
+                } else if (k === 39) {
+                    this.buildMenuIndex = Math.min(this.getBuildItems().length - 1, this.buildMenuIndex + 1);
+                } else if (k === 27) {
+                    this.buildMenuOpen = false;
+                }
+                return;
+            }
+
            switch(""+k)
             {
                 case "70" : this.tryNPCInteract(); break;
@@ -212,8 +274,10 @@ CM.CloudEngine=    class CloudEngine{
                 case "67" : this.player.fire(); break;
                 case "69" : this.tryMine(); break;
                 case "73" : this.inventory.toggle(); this.paused = this.inventory.isOpen(); break;
-                case "74" : this.tryBuildVogelscheuche(); break;
-                case "76" : this.tryBuildBlockhut(); break;
+                case "76" :
+                    this.buildMenuOpen = !this.buildMenuOpen;
+                    if (this.buildMenuOpen) this.buildMenuIndex = 0;
+                    break;
                 case "77" : CM.Sound.toggleMute(); break;
                 case "72" : this.tryHutHeal(); break;
                 case "75" :
@@ -237,6 +301,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         handleMove(k,currentlyPressed)
         {
+            if (this.buildMenuOpen) return;
             var moving = false;
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
@@ -280,6 +345,41 @@ CM.CloudEngine=    class CloudEngine{
             CM.SaveLoad.save(this);
             if (window.updateSaveIndicator) window.updateSaveIndicator();
             this.notify('Blockh\u00fctte gebaut!');
+        }
+        _getBridgeWaterTile() {
+            var p = this.player;
+            var dir = p.direction;
+            if (!dir || (dir.x === 0 && dir.y === 0)) return null;
+            var tileAccess = CM.TILEACCESS(this.world);
+            var dx = dir.x !== 0 ? Math.sign(dir.x) : 0;
+            var dy = dir.y !== 0 ? Math.sign(dir.y) : 0;
+            var mx = Math.floor(p.sizeX / 2);
+            var my = Math.floor(p.sizeY / 2);
+            for (var dist = 6; dist <= 52; dist += 4) {
+                var pt = new CM.Point(p.position.x + mx + dx * dist, p.position.y + my + dy * dist);
+                var tile = tileAccess(pt);
+                if (tile && !tile.isLand()) return tile;
+            }
+            return null;
+        }
+        tryBuildBridge() {
+            var slots = this.inventory.slots;
+            var wi = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
+            var woodHave = wi >= 0 ? slots[wi].count : 0;
+            if (woodHave < 3) {
+                this.notify('Ben\u00f6tigt: 3 Holz', 180);
+                return;
+            }
+            var waterTile = this._getBridgeWaterTile();
+            if (!waterTile) {
+                this.notify('Keine Wasserkante in Laufrichtung!', 180);
+                return;
+            }
+            slots[wi].count -= 3;
+            if (slots[wi].count === 0) slots[wi] = null;
+            var vertical = Math.abs(this.player.direction.y) > Math.abs(this.player.direction.x);
+            this.world.addObject(new CM.Bridge(new CM.Point(waterTile.location.x, waterTile.location.y), vertical));
+            this.notify('Br\u00fccke gebaut!');
         }
         tryBuildVogelscheuche() {
             var slots = this.inventory.slots;
@@ -582,6 +682,153 @@ CM.CloudEngine=    class CloudEngine{
 
             ctx.restore();
         }
+        getBuildItems() {
+            return [
+                {
+                    name: 'Blockh\u00fctte',
+                    cost: [{type: 'WOOD', amount: 6}, {type: 'STONE', amount: 3}],
+                    build: this.tryBuildBlockhut.bind(this),
+                    drawPict: function(ctx, cx, cy, size) {
+                        var sx = size / 12;
+                        var ox = Math.round(cx - 5.5 * sx);
+                        var oy = Math.round(cy - size / 2);
+                        ctx.fillStyle = '#3a2008'; ctx.fillRect(ox + Math.round(2*sx), oy, Math.round(7*sx), Math.round(2*sx));
+                        ctx.fillStyle = '#4a3010'; ctx.fillRect(ox + Math.round(sx), oy + Math.round(2*sx), Math.round(9*sx), Math.round(2*sx));
+                        ctx.fillStyle = '#5a3a18'; ctx.fillRect(ox, oy + Math.round(4*sx), Math.round(11*sx), Math.round(2*sx));
+                        ctx.fillStyle = '#8B5E3C'; ctx.fillRect(ox, oy + Math.round(6*sx), Math.round(11*sx), Math.round(6*sx));
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(ox, oy + Math.round(7*sx), Math.round(11*sx), Math.round(sx));
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(ox, oy + Math.round(9*sx), Math.round(11*sx), Math.round(sx));
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(ox, oy + Math.round(11*sx), Math.round(11*sx), Math.round(sx));
+                        ctx.fillStyle = '#2a1800'; ctx.fillRect(ox + Math.round(3*sx), oy + Math.round(8*sx), Math.round(4*sx), Math.round(4*sx));
+                    }
+                },
+                {
+                    id: 'bridge',
+                    name: 'Br\u00fccke',
+                    cost: [{type: 'WOOD', amount: 3}],
+                    build: this.tryBuildBridge.bind(this),
+                    drawPict: function(ctx, cx, cy, size) {
+                        var sx = size / 32;
+                        var ox = Math.round(cx - 16 * sx);
+                        var oy = Math.round(cy - 7 * sx);
+                        ctx.fillStyle = '#6b3a14'; ctx.fillRect(ox, oy, Math.round(32*sx), Math.round(14*sx));
+                        ctx.fillStyle = '#3a1a04'; ctx.fillRect(ox, oy + Math.round(2*sx), Math.round(32*sx), Math.round(sx));
+                        ctx.fillStyle = '#3a1a04'; ctx.fillRect(ox, oy + Math.round(6*sx), Math.round(32*sx), Math.round(sx));
+                        ctx.fillStyle = '#3a1a04'; ctx.fillRect(ox, oy + Math.round(10*sx), Math.round(32*sx), Math.round(sx));
+                        ctx.fillStyle = '#3a1a04'; ctx.fillRect(ox, oy, Math.round(2*sx), Math.round(14*sx));
+                        ctx.fillStyle = '#3a1a04'; ctx.fillRect(ox + Math.round(30*sx), oy, Math.round(2*sx), Math.round(14*sx));
+                    }
+                },
+                {
+                    name: 'Vogelscheuche',
+                    cost: [{type: 'WOOD', amount: 2}, {type: 'REED', amount: 1}, {type: 'BERRY_RED', amount: 1}],
+                    build: this.tryBuildVogelscheuche.bind(this),
+                    drawPict: function(ctx, cx, cy, size) {
+                        var sx = size / 24;
+                        var ox = Math.round(cx - 7 * sx);
+                        var oy = Math.round(cy - size / 2);
+                        ctx.fillStyle = '#8B6914'; ctx.fillRect(ox + Math.round(6*sx), oy + Math.round(4*sx), Math.round(2*sx), Math.round(20*sx));
+                        ctx.fillStyle = '#7a5c10'; ctx.fillRect(ox, oy + Math.round(9*sx), Math.round(14*sx), Math.round(2*sx));
+                        ctx.fillStyle = '#3a2008'; ctx.fillRect(ox + Math.round(4*sx), oy, Math.round(6*sx), Math.round(3*sx));
+                        ctx.fillStyle = '#3a2008'; ctx.fillRect(ox + Math.round(3*sx), oy + Math.round(3*sx), Math.round(8*sx), Math.round(sx));
+                        ctx.fillStyle = '#e8c87a'; ctx.fillRect(ox + Math.round(4*sx), oy + Math.round(4*sx), Math.round(6*sx), Math.round(5*sx));
+                        ctx.fillStyle = '#3a2008'; ctx.fillRect(ox + Math.round(5*sx), oy + Math.round(5*sx), Math.round(sx), Math.round(sx));
+                        ctx.fillStyle = '#3a2008'; ctx.fillRect(ox + Math.round(8*sx), oy + Math.round(5*sx), Math.round(sx), Math.round(sx));
+                        ctx.fillStyle = '#cc6622'; ctx.fillRect(ox + Math.round(sx), oy + Math.round(11*sx), Math.round(4*sx), Math.round(5*sx));
+                        ctx.fillStyle = '#cc6622'; ctx.fillRect(ox + Math.round(9*sx), oy + Math.round(11*sx), Math.round(4*sx), Math.round(5*sx));
+                        ctx.fillStyle = '#cc6622'; ctx.fillRect(ox + Math.round(5*sx), oy + Math.round(14*sx), Math.round(4*sx), Math.round(8*sx));
+                    }
+                }
+            ];
+        }
+        drawBuildMenu() {
+            var ctx = this.renderer.ctxt;
+            var sw = this.renderer.getScreenWidth();
+            var sh = this.renderer.getScreenHeight();
+            var items = this.getBuildItems();
+            var self = this;
+
+            var CARD_W = 124;
+            var CARD_H = 150;
+            var CARD_GAP = 20;
+            var PAD = 24;
+            var TITLE_H = 30;
+            var HINT_H = 22;
+            var PICT_H = 64;
+
+            var panelW = items.length * CARD_W + (items.length - 1) * CARD_GAP + PAD * 2;
+            var panelH = TITLE_H + CARD_H + HINT_H + PAD * 2;
+            var px = Math.floor((sw - panelW) / 2);
+            var py = Math.floor((sh - panelH) / 2);
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, sw, sh);
+
+            ctx.fillStyle = 'rgba(15,18,28,0.96)';
+            this.roundRect(ctx, px, py, panelW, panelH, 10);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(140,190,140,0.6)';
+            ctx.lineWidth = 1.5;
+            this.roundRect(ctx, px, py, panelW, panelH, 10);
+            ctx.stroke();
+
+            ctx.font = 'bold 14px monospace';
+            ctx.fillStyle = '#aaddaa';
+            ctx.fillText('Bauen', px + PAD, py + 20);
+
+            var cardY = py + TITLE_H + PAD;
+
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var cardX = px + PAD + i * (CARD_W + CARD_GAP);
+                var sel = i === this.buildMenuIndex;
+
+                ctx.fillStyle = sel ? 'rgba(40,65,40,0.9)' : 'rgba(25,30,45,0.9)';
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6);
+                ctx.fill();
+                ctx.strokeStyle = sel ? 'rgba(160,230,160,0.9)' : 'rgba(60,80,60,0.5)';
+                ctx.lineWidth = sel ? 2 : 1;
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6);
+                ctx.stroke();
+
+                ctx.font = 'bold 12px monospace';
+                ctx.fillStyle = sel ? '#ddffdd' : '#99bb99';
+                var nameW = ctx.measureText(item.name).width;
+                ctx.fillText(item.name, cardX + Math.floor((CARD_W - nameW) / 2), cardY + 16);
+
+                item.drawPict(ctx, Math.floor(cardX + CARD_W / 2), Math.floor(cardY + 24 + PICT_H / 2), PICT_H);
+
+                // cost icons centered at bottom of card
+                var costY = cardY + CARD_H - 14;
+                var iconH = 14;
+                var slots = this.inventory.slots;
+                ctx.font = '11px monospace';
+                var parts = item.cost.map(function(c) {
+                    var si = slots.findIndex(function(s) { return s && s.type === c.type; });
+                    var have = si >= 0 ? slots[si].count : 0;
+                    return { type: c.type, amount: c.amount, enough: have >= c.amount, numW: ctx.measureText('' + c.amount).width };
+                });
+                var totalCostW = parts.reduce(function(acc, p) { return acc + p.numW + 2 + iconH; }, 0) + (parts.length - 1) * 6;
+                var cx2 = cardX + Math.floor((CARD_W - totalCostW) / 2);
+                parts.forEach(function(p, j) {
+                    ctx.font = '11px monospace';
+                    ctx.fillStyle = p.enough ? '#88ff88' : '#ff7777';
+                    ctx.fillText('' + p.amount, cx2, costY);
+                    cx2 += Math.round(p.numW) + 2;
+                    var img = self.imagerepo.getImage('item_' + p.type.toLowerCase());
+                    if (img && img.width) ctx.drawImage(img, cx2, costY - iconH + 2, iconH, iconH);
+                    cx2 += iconH + (j < parts.length - 1 ? 6 : 0);
+                });
+            }
+
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#556677';
+            var hint = '\u2190 \u2192 ausw\u00e4hlen   ENTER bauen   ESC schlie\u00dfen';
+            var hintW = ctx.measureText(hint).width;
+            ctx.fillText(hint, px + Math.floor((panelW - hintW) / 2), py + panelH - 8);
+            ctx.restore();
+        }
         roundRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
@@ -622,6 +869,14 @@ CM.CloudEngine=    class CloudEngine{
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
+                var _world = this.world;
+                this.player.setBridgeRetriever(function(pos) {
+                    return _world.getObjects().some(function(obj) {
+                        return obj.isBridge &&
+                               pos.x >= obj.position.x && pos.x < obj.position.x + obj.sizeX &&
+                               pos.y >= obj.position.y && pos.y < obj.position.y + obj.sizeY;
+                    });
+                });
                 this.player.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
                 this.world.applyForTile(CM.MINEABLEMAKER(this.world, this.imagerepo));
@@ -654,6 +909,7 @@ CM.CloudEngine=    class CloudEngine{
                 var self3 = this;
                 this.inputHandler.on("keydown", function(k) {
                     if (k === 13 || k === 27 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
+                    if (self3.buildMenuOpen && (k === 37 || k === 39)) self3.handleInteractions(k);
                 });
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());

@@ -15,7 +15,7 @@ CM.Vogelscheuche = class Vogelscheuche extends CM.MoveableObject {
     draw(renderer) {
         var x = this.position.x;
         var y = this.position.y;
-        var z = this.z;
+        var z = renderer.zoom;
 
         // Vertical post
         renderer.drawRectangleZ(x + 6, y + 4, 2, 20, '#8B6914', z);

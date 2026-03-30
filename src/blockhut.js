@@ -11,7 +11,7 @@ CM.Blockhut = class Blockhut extends CM.MoveableObject {
     draw(renderer) {
         var x = this.position.x;
         var y = this.position.y;
-        var z = this.z;
+        var z = renderer.zoom;
         var w = this.sizeX;
 
         // Roof (stepped rectangles to suggest a peaked shape)

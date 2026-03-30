@@ -30,6 +30,10 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     {
         this.tileInfoRetriever = retriever;
     }
+    setBridgeRetriever(retriever)
+    {
+        this.bridgeRetriever = retriever;
+    }
     setFireBallCreator(creator)
     {
         this.fireBallMaker = creator;
@@ -124,8 +128,11 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
          var newPos = this.getBoundingPos(x,y); //this.position.clone();
          newPos.move(x,y);
          var tileInfo = this.tileInfoRetriever(newPos);
-         if(!tileInfo || !tileInfo.isLand()) return false;
-         else return true;
+         if(!tileInfo || !tileInfo.isLand()) {
+             if(this.bridgeRetriever && this.bridgeRetriever(newPos)) return true;
+             return false;
+         }
+         return true;
       
     }
     toggleSprite(sprite)
@@ -192,9 +199,10 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     dismount(){
         if(this.tileInfoRetriever)
         {
-            if(!this.tileInfoRetriever(this.getBoundingPos(0,0)).isLand())
+            var dismountPos = this.getBoundingPos(0,0);
+            if(!this.tileInfoRetriever(dismountPos).isLand())
             {
-                return null;
+                if(!this.bridgeRetriever || !this.bridgeRetriever(dismountPos)) return null;
             }
         }
         if(this.z != CM.GroundLevel) return null;

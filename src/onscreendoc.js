@@ -19,7 +19,7 @@ CM.OnScreenDocu = class OnScreenDoc{
         if (!this.visible) return;
 
         var panelW = 540;
-        var panelH = 722;
+        var panelH = 740;
         var panelX = (renderer.getScreenWidth() - panelW) / 2;
         var panelY = 10;
         var textX = panelX + 20;
@@ -67,9 +67,10 @@ CM.OnScreenDocu = class OnScreenDoc{
 
         var buildY = miningY + line + gap14*4 + 14;
         renderer.fillTextStatic("Bauen:", textX, buildY, 18);
-        renderer.fillTextStatic("[L] Blockh\u00fctte  -  6 Holz + 3 Stein",                         textX, buildY + line,          s14);
-        renderer.fillTextStatic("[J] Vogelscheuche  -  2 Holz + 1 Schilf + 1 Rote Beere",          textX, buildY + line + gap14,   s14);
-        renderer.fillTextStatic("    verhindert Gegner-Spawn im Umkreis",                           textX, buildY + line + gap14*2, s14);
+        renderer.fillTextStatic("[L] Bau-Men\u00fc \u00f6ffnen",                                        textX, buildY + line,          s14);
+        renderer.fillTextStatic("    Blockh\u00fctte  -  6 Holz + 3 Stein",                          textX, buildY + line + gap14,   s14);
+        renderer.fillTextStatic("    Vogelscheuche  -  2 Holz + 1 Schilf + 1 Rote Beere",           textX, buildY + line + gap14*2, s14);
+        renderer.fillTextStatic("    (verhindert Gegner-Spawn im Umkreis)",                          textX, buildY + line + gap14*3, s14);
 
         var hutY = buildY + line + gap14*3 + 12;
         renderer.fillTextStatic("Nahe Blockh\u00fctte:", textX, hutY, 16);

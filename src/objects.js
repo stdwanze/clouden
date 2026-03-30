@@ -275,19 +275,15 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
 
 
     }
-    tick(player)
+    tick(player, playerMoving)
     {
-
         if(this.z < CM.GroundLevel)
         {
-            if(this.mountedState == true)
-            {
-                if(player != null){
+            if(this.mountedState == true) {
+                if(player != null && !playerMoving) {
                     player.move(this.wind.x, this.wind.y);
-                //    this.move(this.wind.x, this.wind.y);
                 }
-            }
-            else{
+            } else {
                 this.move(this.wind.x, this.wind.y);
             }
         }

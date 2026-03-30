@@ -7,7 +7,7 @@ CM.NPC = class NPC extends CM.MoveableObject {
         this.questIndex = 0;
         this.questAccepted = false;
         this.quests = [
-            { resource: 'WOOD',      amount: 30, text: 'Sammle mir 30 Holz!',            rewardText: '+50 M\u00fcnzen',              reward: { coins: 50 } },
+            { resource: 'WOOD',      amount: 15, text: 'Sammle mir 15 Holz!',            rewardText: '+50 M\u00fcnzen',              reward: { coins: 50 } },
             { resource: 'STONE',     amount: 10, text: 'Bringe mir 10 Stein!',           rewardText: '+30 M\u00fcnzen + 5 Pfeile',   reward: { coins: 30, ammo: 5 } },
             { resource: 'REED',      amount:  5, text: 'Bringe mir 5 Schilf!',           rewardText: '+5 Leben',                     reward: { health: 5 } },
             { resource: 'BERRY_RED', amount:  3, text: 'Bringe mir 3 rote Beeren!',      rewardText: '+10 Pfeile',                   reward: { ammo: 10 } },
@@ -23,7 +23,7 @@ CM.NPC = class NPC extends CM.MoveableObject {
     draw(renderer) {
         var x = this.position.x;
         var y = this.position.y;
-        var z = this.z;
+        var z = renderer.zoom;
 
         // Mast
         renderer.drawRectangleZ(x + 13, y,      2, 18, '#5a3010', z);
