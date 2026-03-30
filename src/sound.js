@@ -110,6 +110,80 @@ CM.Sound = (function() {
         return id;
     }
 
+    // Synthesized wind sound via dedicated AudioContext
+    var windCtx = null;
+    var windNodes = null;
+
+    function getWindCtx() {
+        if (!windCtx) windCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (windCtx.state === 'suspended') windCtx.resume();
+        return windCtx;
+    }
+
+    function startWind() {
+        stopWind();
+        if (muted) return;
+        try {
+            var ctx = getWindCtx();
+            console.log('startWind ctx.state:', ctx.state);
+            var sampleRate = ctx.sampleRate;
+            var bufferSize = sampleRate * 3;
+            var buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            var source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+
+            // Lowpass to remove harsh highs
+            var lp = ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 800;
+            lp.Q.value = 0.5;
+
+            // Bandpass to emphasize wind whoosh frequency
+            var bp = ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.frequency.value = 200;
+            bp.Q.value = 0.3;
+
+            var gain = ctx.createGain();
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 1.5);
+
+            // Slow gain wobble for gusting effect
+            var lfo = ctx.createOscillator();
+            lfo.frequency.value = 0.15;
+            var lfoGain = ctx.createGain();
+            lfoGain.gain.value = 0.08;
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            lfo.start(0);
+
+            source.connect(lp);
+            lp.connect(bp);
+            bp.connect(gain);
+            gain.connect(ctx.destination);
+            source.start(0);
+
+            windNodes = { source: source, gain: gain, lfo: lfo };
+        } catch(e) { console.warn('startWind:', e); }
+    }
+
+    function stopWind() {
+        if (!windNodes) return;
+        try {
+            var ctx = getWindCtx();
+            var gain = windNodes.gain;
+            var snap = windNodes;
+            gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+            setTimeout(function() { try { snap.source.stop(); if(snap.lfo) snap.lfo.stop(); } catch(e) {} }, 900);
+        } catch(e) {}
+        windNodes = null;
+    }
+
     function toggleMute() {
         muted = !muted;
         Howler.mute(muted);
@@ -131,6 +205,6 @@ CM.Sound = (function() {
         }
     }
 
-    return { init: init, play: play, stop: stop, playAt: playAt, updateSpatialLoop: updateSpatialLoop, footstep: footstep, resetFootstep: resetFootstep, fuelWarning: fuelWarning, toggleMute: toggleMute, startMusic: startMusic };
+    return { init: init, play: play, stop: stop, playAt: playAt, updateSpatialLoop: updateSpatialLoop, footstep: footstep, resetFootstep: resetFootstep, fuelWarning: fuelWarning, toggleMute: toggleMute, startMusic: startMusic, startWind: startWind, stopWind: stopWind };
 
 })();

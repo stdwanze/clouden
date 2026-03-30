@@ -323,13 +323,15 @@ CM.CloudEngine=    class CloudEngine{
                     if (this.player.isMounted()) {
                         var v = this.player.vehicle;
                         v.sailMode = !v.sailMode;
+                        if (v.sailMode) { CM.Sound.stop('blimp_hum'); CM.Sound.startWind(); }
+                        else            { CM.Sound.stopWind(); CM.Sound.play('blimp_hum'); }
                         this.notify(v.sailMode ? 'Segel gesetzt!' : 'Segel eingeholt!', 90);
                     } else {
                         this.tryNPCInteract();
                     }
                     break;
                 case "66" : {
-                    if (this.player.isMounted()) { this.player.vehicle.sailMode = false; this.player.dismount(); this.inputHandler._aimTarget = this.player; CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); }
+                    if (this.player.isMounted()) { var _wasSail = this.player.vehicle.sailMode; this.player.vehicle.sailMode = false; this.player.dismount(); this.inputHandler._aimTarget = this.player; CM.Sound.play('dismount'); CM.Sound.stop('blimp_hum'); if(_wasSail) CM.Sound.stopWind(); }
                     else { this.tryMount(); this.inputHandler._aimTarget = this.player.isMounted() ? this.player.vehicle : this.player; CM.Sound.play('mount'); CM.Sound.play('blimp_hum'); }
                     break;
                 }
