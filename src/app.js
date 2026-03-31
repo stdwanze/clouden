@@ -29,6 +29,7 @@ CM.CloudEngine=    class CloudEngine{
             this.buildMenuOpen = false;
             this.buildMenuIndex = 0;
             this.bridgePlacementMode = false;
+            this.storm = new CM.StormManager();
         }
 
         run(){
@@ -67,6 +68,22 @@ CM.CloudEngine=    class CloudEngine{
                     });
                     this.player.tick();
 
+                    // storm tick + ground-strike spawning
+                    this.storm.tick();
+                    if (this.storm.hasPendingStrike()) {
+                        var sx = this.player.position.x + (Math.random() - 0.5) * 500;
+                        var sy = this.player.position.y + (Math.random() - 0.5) * 500;
+                        this.storm.addStrike(sx, sy);
+                        if (this.player.isMounted()) {
+                            var _sdx = sx - this.player.position.x;
+                            var _sdy = sy - this.player.position.y;
+                            if (Math.sqrt(_sdx*_sdx + _sdy*_sdy) < 100) {
+                                this.player.hit(2);
+                                this.notify('Vom Blitz getroffen!', 60);
+                            }
+                        }
+                    }
+
                     // --- draw phase: update viewport AFTER all movement ---
                     this.renderer.setZoom(this.player.z);
                     this.renderer.clear();
@@ -91,6 +108,29 @@ CM.CloudEngine=    class CloudEngine{
 
                     //draw Player
                     this.renderer.draw(this.player);
+
+                    // storm visual effects
+                    if (this.storm.isActive()) {
+                        var _sw = this.renderer.getScreenWidth();
+                        var _sh = this.renderer.getScreenHeight();
+                        // darken + grey-tint the scene
+                        this.renderer.drawRectangleStatic(0, 0, _sw, _sh, 'rgba(10,10,40,0.32)');
+                        // ground lightning bolts
+                        var _r = this.renderer;
+                        var _pp = this.player.position;
+                        this.storm.activeStrikes.forEach(function(s) {
+                            var _a  = s.frames / s.totalFrames;
+                            var _bx = (_pp.x - _r.canvas.width  / 2);
+                            var _by = (_pp.y - _r.canvas.height / 2);
+                            var _ex = (s.x - _bx - _r.canvas.width  / 2) * _r.zoom + _r.canvas.width  / 2;
+                            var _ey = (s.y - _by - _r.canvas.height / 2) * _r.zoom + _r.canvas.height / 2;
+                            CM.drawLightningBolt(_r.ctxt, _ex, _ey - 180 * _r.zoom, _ex, _ey, s.bolt, _a);
+                        });
+                        // screen-wide flash
+                        var _fa = this.storm.getFlashAlpha();
+                        if (_fa > 0)
+                            this.renderer.drawRectangleStatic(0, 0, _sw, _sh, 'rgba(200,220,255,' + _fa + ')');
+                    }
 
                     // Bridge preview
                     var _showBridgePreview = this.bridgePlacementMode ||
@@ -124,6 +164,7 @@ CM.CloudEngine=    class CloudEngine{
                         CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
                         this.drawWindRose(this.player.vehicle);
                     }
+                    this.drawStormWarning();
                 }
                 else
                 {
@@ -978,6 +1019,39 @@ CM.CloudEngine=    class CloudEngine{
             ctx.textAlign = 'left';
             ctx.restore();
         }
+
+        drawStormWarning() {
+            if (!this.storm.isWarning() && !this.storm.isActive()) return;
+            var ctx = this.renderer.ctxt;
+            var sw  = this.renderer.getScreenWidth();
+            // Position: left of the minimap/wind-rose cluster, same height as wind rose
+            var ix  = sw - 16 - (120 + 16) - 16 - 36 - 20 - 36; // ~sw-280
+            var iy  = 16 + 36;
+
+            ctx.save();
+
+            if (this.storm.isActive()) {
+                // Pulsing danger circle
+                var pulse = 0.55 + 0.45 * Math.sin(Date.now() / 130);
+                ctx.fillStyle = 'rgba(180,40,0,' + (0.45 + pulse * 0.4) + ')';
+                ctx.beginPath(); ctx.arc(ix, iy, 22, 0, Math.PI * 2); ctx.fill();
+                CM._drawStormIcon(ctx, ix, iy, 1.0);
+            } else {
+                // Warning: dark background + countdown
+                var cd = this.storm.getWarningCountdown();
+                ctx.fillStyle = 'rgba(10,12,20,0.72)';
+                ctx.beginPath(); ctx.arc(ix, iy - 8, 19, 0, Math.PI * 2); ctx.fill();
+                CM._drawStormIcon(ctx, ix, iy - 8, 0.75);
+                ctx.font = 'bold 11px monospace';
+                ctx.fillStyle = '#ffdd44';
+                ctx.textAlign = 'center';
+                ctx.fillText(cd + 's', ix, iy + 14);
+            }
+
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
         getBuildItems() {
             return [
                 {

@@ -52,7 +52,8 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
             var source = this.isMounted() ? [this.id, this.vehicle.id] : this.id;
             var gunDir = this.isMounted() ? this.vehicle.gunDirection : this.gunDirection;
             var aimDir = (CM.gamepadActive && gunDir) ? gunDir : this.direction;
-            this.fireBallMaker(midPoint, z, type, new CM.Point(aimDir.x*2,aimDir.y*2),source, this.bowLevel);
+            var spd = this.isMounted() ? 2 : 6;
+            this.fireBallMaker(midPoint, z, type, new CM.Point(aimDir.x*spd,aimDir.y*spd),source, this.bowLevel);
             ammoScore.reduce();
             CM.Sound.play(this.isMounted() ? 'shoot_blimp' : 'shoot');
             if(this.isMounted()) this.vehicle.triggerGunFlash();

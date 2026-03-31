@@ -19,6 +19,10 @@ python3 -m http.server 8080
 
 There are no build steps, no tests, and no linting configured.
 
+## Git Policy
+
+Never commit or check in code unless all tests are green.
+
 ## Architecture
 
 ### Script Loading Order

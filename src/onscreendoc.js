@@ -21,9 +21,16 @@ CM.OnScreenDocu = class OnScreenDoc{
         return keycodes.some(function(k) { return !!keys[k]; });
     }
 
+    _text(renderer, text, x, y, size, color, bold) {
+        var ctx = renderer.ctxt;
+        ctx.fillStyle = color || '#2a1f0e';
+        ctx.font = (bold ? 'bold ' : '') + (size || 16) + 'px Cinzel, serif';
+        ctx.fillText(text, x, y);
+    }
+
     _line(renderer, text, x, y, size, keycodes) {
         var active = keycodes && this._isActive(keycodes);
-        renderer.fillTextStaticColor(text, x, y, size || 20, active ? '#e8a020' : '#24272b');
+        this._text(renderer, text, x, y, size || 16, active ? '#c87820' : '#2a1f0e');
     }
 
     draw(renderer)
@@ -36,72 +43,78 @@ CM.OnScreenDocu = class OnScreenDoc{
         var panelY = 10;
         var textX = panelX + 20;
         var line = 22;
-        var s14 = 14;
+        var s14 = 13;
         var gap14 = 18;
+        var T = this._text.bind(this, renderer);
         var L = this._line.bind(this, renderer);
 
-        renderer.drawRectangleStatic(panelX, panelY, panelW, panelH, "white");
+        renderer.drawRectangleStatic(panelX, panelY, panelW, panelH, '#f5f0e8');
+        // subtle border
+        renderer.drawRectangleStatic(panelX,     panelY,          panelW, 2,      '#8b6914');
+        renderer.drawRectangleStatic(panelX,     panelY+panelH-2, panelW, 2,      '#8b6914');
+        renderer.drawRectangleStatic(panelX,     panelY,          2,      panelH, '#8b6914');
+        renderer.drawRectangleStatic(panelX+panelW-2, panelY,     2,      panelH, '#8b6914');
 
-        renderer.fillTextStatic("-- cloud adventurer --", textX, panelY + 30, 28);
-        renderer.fillTextStatic("How to play:", textX, panelY + 30 + line, 18);
-        L("move with the arrow keys",        textX, panelY + 30 + line*2, 20, [37,38,39,40]);
-        L("board the blimp with b-key",      textX, panelY + 30 + line*3, 20, [66]);
-        L("ascend/descend with a and s key", textX, panelY + 30 + line*4, 20, [65,83]);
-        L("fire with c-key",                 textX, panelY + 30 + line*5, 20, [67]);
-        L("mine resources with e-key",       textX, panelY + 30 + line*6, 20, [69]);
-        L("open inventory with i-key",       textX, panelY + 30 + line*7, 20, [73]);
-        L("talk to NPC / sail with f-key",   textX, panelY + 30 + line*8, 20, [70]);
+        T("-- Cloud Adventurer --", textX, panelY + 32, 22, '#5a3a00', true);
+        T("How to play:", textX, panelY + 32 + line, 15, '#5a3a00', true);
+        L("move with the arrow keys",        textX, panelY + 32 + line*2, 14, [37,38,39,40]);
+        L("board the blimp with b-key",      textX, panelY + 32 + line*3, 14, [66]);
+        L("ascend/descend with a and s key", textX, panelY + 32 + line*4, 14, [65,83]);
+        L("fire with c-key",                 textX, panelY + 32 + line*5, 14, [67]);
+        L("mine resources with e-key",       textX, panelY + 32 + line*6, 14, [69]);
+        L("open inventory with i-key",       textX, panelY + 32 + line*7, 14, [73]);
+        L("talk to NPC / sail with f-key",   textX, panelY + 32 + line*8, 14, [70]);
 
-        // gamepad hint
         if(CM.gamepadActive) {
-            renderer.fillTextStaticColor('use gamepad to see', textX + 300, panelY + 30 + line, 13, '#888');
+            T('use gamepad to see', textX + 300, panelY + 32 + line, 11, '#7a6030');
         }
 
-        var collectY = panelY + 30 + line * 9 + 10;
-        renderer.fillTextStatic("Collectables:", textX, collectY, 18);
+        var collectY = panelY + 32 + line * 9 + 8;
+        T("Collectables:", textX, collectY, 14, '#5a3a00', true);
 
         var iconSize = 24;
-        var rowH = 32;
+        var rowH = 30;
+        var self = this;
         var collectables = [
-            { key: "coin_10",   text: "Coins - collect to increase your score" },
-            { key: "health_10", text: "Health - restores your health" },
-            { key: "ammo_10",   text: "Ammo - gives you ammo to fire (c-key)" },
-            { key: "fuel_10",   text: "Fuel - refuels the blimp (on ground, b-key)" },
+            { key: "coin_10",   text: "Coins \u2014 collect to increase your score" },
+            { key: "health_10", text: "Health \u2014 restores your health" },
+            { key: "ammo_10",   text: "Ammo \u2014 gives you ammo to fire" },
+            { key: "fuel_10",   text: "Fuel \u2014 refuels the blimp" },
         ];
 
         var repo = this.imagerepo;
         collectables.forEach(function(c, i) {
             var rowY = collectY + line + i * rowH;
             if (repo) renderer.drawImageStatic(repo.getImage(c.key), textX, rowY - iconSize + 4, iconSize, iconSize, 1);
-            renderer.fillTextStatic(c.text, textX + iconSize + 10, rowY);
+            self._text(renderer, c.text, textX + iconSize + 10, rowY, s14);
         });
 
-        var miningY = collectY + line + collectables.length * rowH + 10;
-        L("Mining (e-Taste):", textX, miningY, 18, [69]);
-        renderer.fillTextStatic("Holz (braun)  -  3 Treffer",                    textX, miningY + line,          s14);
-        renderer.fillTextStatic("Stein (grau)  -  5 Treffer",                    textX, miningY + line + gap14,   s14);
-        renderer.fillTextStatic("Schilf (gr\u00fcn, Wasserrand)  -  1 Treffer", textX, miningY + line + gap14*2, s14);
-        renderer.fillTextStatic("Beeren (rot/blau)  -  2 Treffer",              textX, miningY + line + gap14*3, s14);
+        var miningY = collectY + line + collectables.length * rowH + 8;
+        L("Mining (e-key):", textX, miningY, 14, [69]);
+        T("Wood (brown)  \u2014  3 hits",                    textX, miningY + line,          s14);
+        T("Stone (grey)  \u2014  5 hits",                    textX, miningY + line + gap14,   s14);
+        T("Reed (green, water edge)  \u2014  1 hit",         textX, miningY + line + gap14*2, s14);
+        T("Berries (red/blue)  \u2014  2 hits",              textX, miningY + line + gap14*3, s14);
 
-        var buildY = miningY + line + gap14*4 + 14;
-        renderer.fillTextStatic("Bauen:", textX, buildY, 18);
-        L("[L] Bau-Men\u00fc \u00f6ffnen",                                        textX, buildY + line,          s14, [76]);
-        renderer.fillTextStatic("    Blockh\u00fctte  -  6 Holz + 3 Stein",                          textX, buildY + line + gap14,   s14);
-        renderer.fillTextStatic("    Vogelscheuche  -  2 Holz + 1 Schilf + 1 Rote Beere",           textX, buildY + line + gap14*2, s14);
-        renderer.fillTextStatic("    (verhindert Gegner-Spawn im Umkreis)",                          textX, buildY + line + gap14*3, s14);
+        var buildY = miningY + line + gap14*4 + 12;
+        T("Build:", textX, buildY, 14, '#5a3a00', true);
+        L("[L] Open build menu",                                          textX, buildY + line,          s14, [76]);
+        T("    Blockh\u00fctte  \u2014  6 Wood + 3 Stone",               textX, buildY + line + gap14,   s14);
+        T("    Scarecrow  \u2014  2 Wood + 1 Reed + 1 Red Berry",        textX, buildY + line + gap14*2, s14);
+        T("    (prevents enemy spawn nearby)",                            textX, buildY + line + gap14*3, s14);
 
-        var hutY = buildY + line + gap14*3 + 12;
-        renderer.fillTextStatic("Nahe Blockh\u00fctte:", textX, hutY, 16);
-        L("[H] Heilen  (braucht Bett)",               textX, hutY + gap14 + 4,   s14, [72]);
-        renderer.fillTextStatic("[D] Bett bauen  (4 Holz)",                 textX, hutY + gap14*2 + 4, s14);
-        renderer.fillTextStatic("[D] Crafting Station  (3 Holz + 5 Stein)", textX, hutY + gap14*3 + 4, s14);
-        renderer.fillTextStatic("[K] Bogen aufr\u00fcsten  (2 Holz + 3 Stein)",  textX, hutY + gap14*4 + 4, s14);
-        renderer.fillTextStatic("[K] Pfeile herstellen  (2 Holz, +3 Ammo)", textX, hutY + gap14*5 + 4, s14);
+        var hutY = buildY + line + gap14*3 + 10;
+        T("Near Blockh\u00fctte:", textX, hutY, 14, '#5a3a00', true);
+        L("[H] Heal  (requires bed)",                   textX, hutY + gap14 + 4,   s14, [72]);
+        T("[D] Build bed  (4 Wood)",                    textX, hutY + gap14*2 + 4, s14);
+        T("[D] Crafting Station  (3 Wood + 5 Stone)",   textX, hutY + gap14*3 + 4, s14);
+        T("[K] Upgrade bow  (2 Wood + 3 Stone)",        textX, hutY + gap14*4 + 4, s14);
+        T("[K] Craft arrows  (2 Wood, +3 Ammo)",        textX, hutY + gap14*5 + 4, s14);
 
         // debug line
         if(this.inputHandler) {
             var dbg = 'last key: ' + (this.inputHandler.lastKeyCode !== undefined ? this.inputHandler.lastKeyCode : '-');
-            renderer.fillTextStaticColor(dbg, textX, panelY + panelH - 16, 13, '#888');
+            T(dbg, textX, panelY + panelH - 12, 11, '#999');
         }
     }
 }

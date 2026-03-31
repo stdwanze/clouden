@@ -66,6 +66,7 @@ function makeWorldMock() {
     getChunkByIndeces:jest.fn().mockReturnValue(mockChunk),
     getChunk:         jest.fn().mockReturnValue(mockChunk),
     getSizeX:         jest.fn().mockReturnValue(3000),
+    getSizeY:         jest.fn().mockReturnValue(3000),
   };
 }
 
