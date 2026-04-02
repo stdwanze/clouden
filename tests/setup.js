@@ -33,6 +33,7 @@ global.CM = {};
 // Load all source files in the same order as index.htm
 require('../src/globals');
 require('../src/storm');
+require('../src/floatingisland');
 require('../src/sound');
 require('../src/imagerepo');
 require('../src/simulations');

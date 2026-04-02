@@ -136,17 +136,25 @@ CM.FireBall = class FireBall extends CM.Sprite{
         }
         else
         {
+            if(this.islandRetriever && Math.abs(this.z - CM.FloatLevel) <= 0.12)
+            {
+                var _pos = this.position;
+                var hitIsland = this.islandRetriever().some(function(isl) {
+                    return isl.containsRect(_pos.x, _pos.y, 1, 1);
+                });
+                if(hitIsland) { this.rangeExCallback(this); return; }
+            }
             var hit = false;
             var objs = this.getHitables();
             objs.forEach(function (obj){
                 if(Array.isArray(this.sourceIds) ? this.sourceIds.indexOf(obj.id) == -1 : this.sourceIds != obj.id)
                 {
-                        if(CM.distance(this.position, obj.position) < 15)
+                        if(CM.distance(this.position, obj.position) < 15 && Math.abs(this.z - obj.z) < 0.6)
                         {
                             obj.hit(this.strength);
                             hit = true;
                         }
-                    
+
                 }
             }.bind(this));
             if(hit)
@@ -162,6 +170,10 @@ CM.FireBall = class FireBall extends CM.Sprite{
     registerGetHitables(callback)
     {
         this.getHitables = callback;
+    }
+    registerIslandRetriever(fn)
+    {
+        this.islandRetriever = fn;
     }
 
 }
@@ -468,15 +480,36 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
             }
         }
     }
+    setIslandRetriever(fn) {
+        this.islandRetriever = fn;
+    }
+    isOnIsland() {
+        if (!this.islandRetriever) return false;
+        if (Math.abs(this.z - CM.FloatLevel) > 0.03) return false;
+        return this.islandRetriever().some(function(isl) {
+            return isl.containsRect(this.position.x, this.position.y, this.sizeX, this.sizeY);
+        }.bind(this));
+    }
+    _collidesWithIsland(dx, dy) {
+        if (!this.islandRetriever) return false;
+        if (Math.abs(this.z - CM.FloatLevel) > 0.12) return false;
+        var nx = this.position.x + dx;
+        var ny = this.position.y + dy;
+        return this.islandRetriever().some(function(island) {
+            return island.containsRect(nx, ny, this.sizeX, this.sizeY);
+        }.bind(this));
+    }
     move(x,y)
     {
+        if(this.isOnIsland()) return false;
         var mult = this.sailMode ? 3.0 : 1.0;
         if(x == this.wind.x * mult && y == this.wind.y * mult) {
+            if(this._collidesWithIsland(x,y)) return false;
             super.move(x,y);
             return true;
         }
         if(this.scores.get("FUEL").getScore() > this.scores.get("FUEL").getMin()){
-            
+            if(this._collidesWithIsland(x,y)) return false;
             var fuelConsumption= CM.distance(new CM.Point(0,0),new CM.Point(x,y));
             this.scores.get("FUEL").reduce(fuelConsumption*this.consumptionEfficiancy);
             super.move(x,y);

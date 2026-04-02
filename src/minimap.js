@@ -44,11 +44,15 @@ CM.Minimap = class Minimap {
                 var tiles = chunk.getTiles();
                 for (var t = 0; t < tiles.length; t++) {
                     var tile = tiles[t];
-                    if (!tile.isLand()) continue;
                     var mx = ox + half + (tile.location.x - px) * scale;
                     var my = oy + half + (tile.location.y - py) * scale;
-                    ctx.fillStyle = '#4a7a3a';
-                    ctx.fillRect(Math.floor(mx), Math.floor(my), tilePixels, tilePixels);
+                    if (tile.info && tile.info.isMountain) {
+                        ctx.fillStyle = '#888';
+                        ctx.fillRect(Math.floor(mx), Math.floor(my), tilePixels, tilePixels);
+                    } else if (tile.isLand()) {
+                        ctx.fillStyle = '#4a7a3a';
+                        ctx.fillRect(Math.floor(mx), Math.floor(my), tilePixels, tilePixels);
+                    }
                 }
             }
         }

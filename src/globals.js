@@ -1,5 +1,6 @@
 CM = window.CM || {};
 CM.GroundLevel = 2.5;
+CM.FloatLevel  = 1.85; // z-level of floating islands (between ground and sky)
 CM.SkyLevel = 1.75;
 CM.Max = 1;
 

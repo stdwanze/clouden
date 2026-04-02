@@ -51,8 +51,18 @@ CM.CloudEngine=    class CloudEngine{
                     this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
                     var heldKeys = this.inputHandler.currentKeys;
                     if (!this.buildMenuOpen) {
-                        if (heldKeys[65]) this.player.ascend(0.01);
-                        if (heldKeys[83]) this.player.descend(0.01);
+                        var _blimpV = this.player.isMounted() ? this.player.vehicle : null;
+                        var _islandBlocked = function(newZ) {
+                            return _blimpV && _blimpV.islandRetriever &&
+                                Math.abs(newZ - CM.FloatLevel) <= 0.015 &&
+                                _blimpV.islandRetriever().some(function(isl) {
+                                    return isl.containsRect(_blimpV.position.x, _blimpV.position.y, _blimpV.sizeX, _blimpV.sizeY);
+                                });
+                        };
+                        if (this.player.isMounted()) {
+                            if (heldKeys[65] && !_islandBlocked(this.player.z - 0.01)) this.player.ascend(0.01);
+                            if (heldKeys[83] && !_islandBlocked(this.player.z + 0.01)) this.player.descend(0.01);
+                        }
                     }
 
                     // interacte player with world
@@ -85,7 +95,15 @@ CM.CloudEngine=    class CloudEngine{
                     }
 
                     // --- draw phase: update viewport AFTER all movement ---
-                    this.renderer.setZoom(this.player.z);
+                    var _blimpForIsland = this.player.isMounted() ? this.player.vehicle : null;
+                    var _onIsland = (_blimpForIsland && _blimpForIsland.isOnIsland && _blimpForIsland.isOnIsland()) ||
+                        (!this.player.isMounted() && this.player.islandRetriever &&
+                         Math.abs(this.player.z - CM.FloatLevel) <= 0.25 &&
+                         this.player.islandRetriever().some(function(isl) {
+                             return isl.containsRect(self.player.position.x, self.player.position.y, 1, 1);
+                         }));
+                    this.renderer.playerOnIsland = _onIsland;
+                    this.renderer.setZoom(_onIsland ? CM.GroundLevel : this.player.z);
                     this.renderer.clear();
                     this.renderer.updatePos(this.player.position);
                     this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
@@ -98,7 +116,7 @@ CM.CloudEngine=    class CloudEngine{
                     // draw movableobjects
                     this.world.getObjects().forEach(element =>
                     {
-                        if(this.player.z >= element.z+0.3)
+                        if(this.player.z >= element.z+0.3 && !element.handlesOwnAlpha)
                         {
                             this.renderer.lighter()
                         }
@@ -452,6 +470,7 @@ CM.CloudEngine=    class CloudEngine{
                 var pt = new CM.Point(p.position.x + mx + dx * dist, p.position.y + my + dy * dist);
                 var tile = tileAccess(pt);
                 if (!tile) break;
+                if (tile.info && tile.info.isMountain) break; // mountains block bridge placement
                 if (tile.isLand()) {
                     if (foundWater) break;
                     continue;
@@ -1252,8 +1271,25 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
                 this.world.applyForTile(CM.MINEABLEMAKER(this.world, this.imagerepo));
                 this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10,0.2));
-                this.world.addObject( new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp")));
+                var blimp = new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp"));
+                this.world.addObject(blimp);
                 this.world.addObject(new CM.NPC(new CM.Point(60, 10)));
+
+                // Floating islands — reachable only by blimp at CM.FloatLevel
+                [
+                    new CM.Point(400,  350),
+                    new CM.Point(900,  200),
+                    new CM.Point(200,  750),
+                    new CM.Point(1100, 600),
+                ].forEach(pos => {
+                    this.world.addObject(new CM.FloatingIsland(pos, null, this.imagerepo.getImage('tile_island')));
+                });
+                var _w2 = this.world;
+                var _islandGetter = function() {
+                    return _w2.getObjects().filter(function(o) { return o instanceof CM.FloatingIsland; });
+                };
+                blimp.setIslandRetriever(_islandGetter);
+                this.player.setIslandRetriever(_islandGetter);
                 
                 var dragon = new CM.Dragon(new CM.Point( 150,150),this.imagerepo.getImage("dragon_small"));
                 dragon.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));

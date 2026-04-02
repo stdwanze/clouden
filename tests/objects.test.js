@@ -130,7 +130,7 @@ describe('CM.FireBall', () => {
     const onRange = jest.fn();
     fb.registerRangeEx(onRange);
 
-    const target = { id: 999, position: new CM.Point(5, 0), hit: jest.fn() };
+    const target = { id: 999, position: new CM.Point(5, 0), z: CM.GroundLevel, hit: jest.fn() };
     fb.registerGetHitables(() => [target]);
     fb.tick();
 

@@ -63,6 +63,7 @@
 
     <script type="text/javascript" src="src/globals.js"></script>
     <script type="text/javascript" src="src/storm.js"></script>
+    <script type="text/javascript" src="src/floatingisland.js"></script>
     <script type="text/javascript" src="src/sound.js"></script>
     
     <script type="text/javascript" src="src/imagerepo.js"></script>
@@ -150,6 +151,8 @@
         var seed = CM.SaveLoad.getSavedSeed();
         if (seed === null) seed = Math.random();
         CM.initRng(seed);
+        CM.biomeMap    = CM.BiomeMap(10, 10);     // must be called after initRng, before TILECREATOR
+        CM.mountainMap = CM.MountainMap(300, 300); // tile-level mountain mask
 
         var repo = new CM.ImageRepo();
         repo.load().then(function (){

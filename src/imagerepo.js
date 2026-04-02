@@ -9,6 +9,11 @@ CM.ImageRepo = class Repo{
 					this.register("img/cloud.png", "cloud");
 					this.register("img/tile_water32.png", "tile_water");
 					this.register("img/tile_land_desert32.png", "tile_land_desert");
+					this.register("img/tile_land_gras32.png", "tile_land_gras");
+					this.register("img/tile_land_gras_dark32.png", "tile_land_gras_dark");
+					this.register("img/tile_land_snow32.png", "tile_land_snow");
+					this.register("img/tile_island32.png", "tile_island");
+					this.register("img/tile_mountain32.png", "tile_mountain");
 					this.register("img/water_border_top.png", "border_land_water_top");
 					this.register("img/water_border_down.png", "border_land_water_down");
 					this.register("img/water_border_left.png", "border_land_water_left");

@@ -53,6 +53,9 @@ CM.FireBallCreator = function (world, repo)
         fb.registerGetHitables(function (getHitables){
             return world.getHitables();
         })
+        fb.registerIslandRetriever(function() {
+            return world.getObjects().filter(function(o) { return o instanceof CM.FloatingIsland; });
+        });
         world.addObject(fb);
     }
 }
@@ -168,8 +171,158 @@ CM.AnnotateWorld = function (tileArray, widthInTiles, color)
     return ret;
 }
 
+CM.BiomeMap = function(chunksWide, chunksHigh) {
+    var spawnBiome = Math.floor(CM.rng() * 3); // 0–2, never snow at spawn
+    var MAX_DIST   = Math.sqrt(chunksWide * chunksWide + chunksHigh * chunksHigh);
+    var map = new Uint8Array(chunksWide * chunksHigh);
+
+    // initial assignment: diagonal gradient from spawn corner + noise
+    for (var cy = 0; cy < chunksHigh; cy++) {
+        for (var cx = 0; cx < chunksWide; cx++) {
+            var dist    = Math.sqrt(cx * cx + cy * cy) / MAX_DIST;
+            var shifted = spawnBiome / 3 + dist * (1 - spawnBiome / 3);
+            // deterministic per-chunk noise ±0.10
+            var h = (((cx * 1664525 + cy * 1013904223) >>> 0) % 1000) / 1000;
+            var noise = h * 0.20 - 0.10;
+            var biome = Math.min(3, Math.max(0, Math.floor((shifted + noise) * 4)));
+            map[cy * chunksWide + cx] = biome;
+        }
+    }
+
+    // clamp pass: no two neighbors may differ by more than 1 step
+    var changed = true;
+    while (changed) {
+        changed = false;
+        for (var cy2 = 0; cy2 < chunksHigh; cy2++) {
+            for (var cx2 = 0; cx2 < chunksWide; cx2++) {
+                var idx = cy2 * chunksWide + cx2;
+                var b   = map[idx];
+                var nb  = [];
+                if (cx2 > 0)              nb.push(map[idx - 1]);
+                if (cx2 < chunksWide - 1) nb.push(map[idx + 1]);
+                if (cy2 > 0)              nb.push(map[idx - chunksWide]);
+                if (cy2 < chunksHigh - 1) nb.push(map[idx + chunksWide]);
+                for (var n = 0; n < nb.length; n++) {
+                    if (Math.abs(b - nb[n]) > 1) {
+                        b = nb[n] + Math.sign(b - nb[n]);
+                        map[idx] = b;
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    return {
+        spawnBiome: spawnBiome,
+        biomeAt: function(cx, cy) {
+            if (cx < 0 || cy < 0 || cx >= chunksWide || cy >= chunksHigh) return 0;
+            return map[cy * chunksWide + cx];
+        }
+    };
+};
+
+CM.MountainMap = function(totalTilesWide, totalTilesHigh, landArray) {
+    var map = new Uint8Array(totalTilesWide * totalTilesHigh);
+    var numRidges = 60;
+    var numSmallRidges = 80; // small outcroppings ~5 long, ~3 wide
+
+    function isLandTile(tx, ty) {
+        if (!landArray) return true; // no filter if array not provided
+        if (tx < 0 || ty < 0 || tx >= totalTilesWide || ty >= totalTilesHigh) return false;
+        return !!landArray[ty * totalTilesWide + tx];
+    }
+
+    function mark(tx, ty) {
+        if (tx < 0 || ty < 0 || tx >= totalTilesWide || ty >= totalTilesHigh) return;
+        if (!isLandTile(tx, ty)) return;
+        map[ty * totalTilesWide + tx] = 1;
+    }
+
+    for (var r = 0; r < numRidges; r++) {
+        // avoid spawn area (first 15×15 tiles)
+        var cx, cy;
+        do {
+            cx = Math.floor(CM.rng() * totalTilesWide);
+            cy = Math.floor(CM.rng() * totalTilesHigh);
+        } while (cx < 15 && cy < 15);
+
+        var length  = 10 + Math.floor(CM.rng() * 11); // 10–20
+        var maxW    = 1  + Math.floor(CM.rng() * 4);  // 1–4
+        // primary direction — 8 possible angles for more variety
+        var angle   = Math.floor(CM.rng() * 8);
+        var adx     = [1,1,0,-1,-1,-1,0,1][angle];
+        var ady     = [0,1,1,1,0,-1,-1,-1][angle];
+
+        for (var step = 0; step < length; step++) {
+            // organic drift: occasionally nudge the path perpendicular
+            if (step > 0 && CM.rng() < 0.25) {
+                cx += ady;
+                cy -= adx;
+            }
+            cx += adx;
+            cy += ady;
+            // minimum width 2 so there are no single-tile gaps to slip through
+            var t   = step / length;
+            var env = Math.sin(t * Math.PI);
+            var w   = Math.max(2, Math.round(maxW * env + CM.rng() * 0.8));
+            mark(cx, cy);
+            for (var wi = 1; wi < w; wi++) {
+                mark(cx + ady * wi,  cy - adx * wi);
+                mark(cx - ady * wi,  cy + adx * wi);
+            }
+        }
+    }
+
+    // small outcroppings
+    for (var sr = 0; sr < numSmallRidges; sr++) {
+        var scx, scy;
+        do {
+            scx = Math.floor(CM.rng() * totalTilesWide);
+            scy = Math.floor(CM.rng() * totalTilesHigh);
+        } while (scx < 15 && scy < 15);
+
+        var sangle = Math.floor(CM.rng() * 8);
+        var sadx   = [1,1,0,-1,-1,-1,0,1][sangle];
+        var sady   = [0,1,1,1,0,-1,-1,-1][sangle];
+        var slen   = 3 + Math.floor(CM.rng() * 4); // 3–6
+
+        for (var sstep = 0; sstep < slen; sstep++) {
+            scx += sadx;
+            scy += sady;
+            mark(scx, scy);
+            mark(scx + sady,  scy - sadx);
+            mark(scx - sady,  scy + sadx);
+        }
+    }
+
+    // dilation pass: fill any tile that has mountain neighbours on two opposite sides
+    // this closes single-tile gaps left by drift steps
+    var dilated = new Uint8Array(map);
+    for (var dy = 1; dy < totalTilesHigh - 1; dy++) {
+        for (var dx = 1; dx < totalTilesWide - 1; dx++) {
+            if (dilated[dy * totalTilesWide + dx]) continue;
+            var idx = dy * totalTilesWide + dx;
+            var n = map[(dy-1)*totalTilesWide+dx], s = map[(dy+1)*totalTilesWide+dx];
+            var w2 = map[dy*totalTilesWide+(dx-1)], e = map[dy*totalTilesWide+(dx+1)];
+            var nw = map[(dy-1)*totalTilesWide+(dx-1)], se = map[(dy+1)*totalTilesWide+(dx+1)];
+            var ne = map[(dy-1)*totalTilesWide+(dx+1)], sw = map[(dy+1)*totalTilesWide+(dx-1)];
+            if ((n&&s) || (w2&&e) || (nw&&se) || (ne&&sw)) dilated[idx] = 1;
+        }
+    }
+
+    return {
+        isMountain: function(tx, ty) {
+            if (tx < 0 || ty < 0 || tx >= totalTilesWide || ty >= totalTilesHigh) return false;
+            return dilated[ty * totalTilesWide + tx] === 1;
+        }
+    };
+};
+
 CM.TILECREATOR = function (imagerepo,widthInTiles)
 {
+    var biomeNames = ['tile_land_desert', 'tile_land_gras', 'tile_land_gras_dark', 'tile_land_snow'];
+    var tilesPerChunk = 30;
 
     var index = Math.floor(CM.rng()*10);
     var color = [ "#F00000", "0F0000", "#00F000", "#000F00", "#0000F0", "#00000F", "#FF0000", "00FF00", "0000FF", "#FFFF00", "#FFFFFF", "#000000"];
@@ -178,32 +331,40 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
 
     return function(i,k,location,tileSize, worldx, worldy)
     {
-        
+        var info = array[(worldy+k)*widthInTiles+(i+worldx)];
 
-      //  var info = worldx != 0 && worldy != 0 ? array[k*worldy*widthInTiles+(i*worldx)]: array[k*widthInTiles+(i)];
-        var info =  array[(worldy+k)*widthInTiles+(i+worldx)];
-        if(worldx == 0 && worldy == 0 && i< 2 && k < 2)
-         {
-            c = "tile_land_desert";
+        // guarantee spawn tiles are walkable land
+        if(worldx == 0 && worldy == 0 && i < 2 && k < 2) {
             info.isLand = true;
-            if(i == 1)info.borderRight = true;
-            if(k == 1)info.borderDown = true;
+            if(i == 1) info.borderRight = true;
+            if(k == 1) info.borderDown = true;
         }
-        else{
-            c = !info.isLand ? "tile_water" :  "tile_land_desert";
-        } 
-       // var c = (i+k) % 2 == 0 ? "tile_water" : "tile_land_desert";
+
+        var chunkX = Math.floor(worldx / tilesPerChunk);
+        var chunkY = Math.floor(worldy / tilesPerChunk);
+        var biomeIndex = CM.biomeMap ? CM.biomeMap.biomeAt(chunkX, chunkY) : 0;
+        var tileX = worldx + i;
+        var tileY = worldy + k;
+        var isMountain = !!(info.isLand && CM.mountainMap && CM.mountainMap.isMountain(tileX, tileY));
+
+        if (isMountain) {
+            info.isLand = false;
+            info.isMountain = true;
+        }
+
+        var c = !info.isLand && !isMountain ? "tile_water" : biomeNames[biomeIndex];
         var image = imagerepo.getImage(c);
-        var ts =  new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image,info);
-   
+        var ts = new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image,info);
+        if (isMountain) ts.addOverlay(imagerepo.getImage("tile_mountain"));
+
         if(info.isLand)
         {
-            if(info.borderTop) ts.addBorder(imagerepo.getImage("border_land_water_top"), new CM.Point(0,-2));
-            if(info.borderDown) ts.addBorder(imagerepo.getImage("border_land_water_down"), new CM.Point(0,24));
-            if(info.borderLeft) ts.addBorder(imagerepo.getImage("border_land_water_left"), new CM.Point(0,0));
-            if(info.borderRight) ts.addBorder(imagerepo.getImage("border_land_water_right"), new CM.Point(26,0));
+            if(info.borderTop)  ts.addBorder(imagerepo.getImage("border_land_water_top"),   new CM.Point(0,-2));
+            if(info.borderDown) ts.addBorder(imagerepo.getImage("border_land_water_down"),  new CM.Point(0,24));
+            if(info.borderLeft) ts.addBorder(imagerepo.getImage("border_land_water_left"),  new CM.Point(0,0));
+            if(info.borderRight)ts.addBorder(imagerepo.getImage("border_land_water_right"), new CM.Point(26,0));
 
-            var num = CM.rng() >0.5? "1": "2";
+            var num = CM.rng() > 0.5 ? "1" : "2";
             if(info.decals) ts.addDecals(imagerepo.getImage("decal_land_vegetation_"+num), new CM.Point(2+Math.floor(CM.rng()*10),2+Math.floor(CM.rng()*10)));
         }
 

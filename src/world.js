@@ -12,6 +12,7 @@ CM.TileSprite = class TileSprite {
         this.size = this.sprite.sizeX;
         this.border = [];
         this.decals = [];
+        this.overlays = [];
         //image, location,z, isStatic, scalingfactor
     }
     isLand(){
@@ -24,6 +25,10 @@ CM.TileSprite = class TileSprite {
     addDecals(image, realOffSetCoords)
     {
         this.decals.push( { img: image, offSet: realOffSetCoords})
+    }
+    addOverlay(image)
+    {
+        this.overlays.push(image);
     }
     draw(renderer)
     {
@@ -47,6 +52,10 @@ CM.TileSprite = class TileSprite {
                 }.bind(this));
 
             }
+
+        this.overlays.forEach(function(img) {
+            renderer.drawTile(img, this.location.x, this.location.y, this.size, this.size);
+        }.bind(this));
     }
 
 }
@@ -60,6 +69,7 @@ CM.TileInfo = class TileInfo{
         this.decals =decals;
         this.chunkborder = chunkborder;
         this.color = color;
+        this.isMountain = false;
     }
 }
 CM.Chunk = class Chunk {

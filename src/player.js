@@ -35,6 +35,10 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     {
         this.bridgeRetriever = retriever;
     }
+    setIslandRetriever(retriever)
+    {
+        this.islandRetriever = retriever;
+    }
     setFireBallCreator(creator)
     {
         this.fireBallMaker = creator;
@@ -129,16 +133,39 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     checkMovement(x,y)
     {
-       
-         var newPos = this.getBoundingPos(x,y); //this.position.clone();
-         newPos.move(x,y);
-         var tileInfo = this.tileInfoRetriever(newPos);
-         if(!tileInfo || !tileInfo.isLand()) {
-             if(this.bridgeRetriever && this.bridgeRetriever(newPos)) return true;
-             return false;
-         }
-         return true;
-      
+        var newPos = this.getBoundingPos(x,y);
+        newPos.move(x,y);
+
+        // determine current altitude state
+        var onGround  = this.z >= CM.GroundLevel - 0.05;
+        var onIsland  = !onGround && this.islandRetriever &&
+                        Math.abs(this.z - CM.FloatLevel) <= 0.25 &&
+                        this.islandRetriever().some(function(isl) {
+                            return isl.containsRect(this.position.x, this.position.y, 1, 1);
+                        }.bind(this));
+        if (onGround) {
+            // ground rules: must step onto land or bridge, never onto an island footprint
+            var tileInfo = this.tileInfoRetriever(newPos);
+            var hasGround = tileInfo && tileInfo.isLand();
+            var hasBridge = this.bridgeRetriever && this.bridgeRetriever(newPos);
+            if (!hasGround && !hasBridge) return false;
+            // island tiles sit above ground — block walking into their footprint
+            if (this.islandRetriever && this.islandRetriever().some(function(isl) {
+                return isl.containsRect(newPos.x, newPos.y, 1, 1);
+            })) return false;
+            return true;
+        }
+
+        if (onIsland) {
+            // island rules: may only step onto another island tile (can't walk off the edge)
+            if (this.islandRetriever().some(function(isl) {
+                return isl.containsRect(newPos.x, newPos.y, 1, 1);
+            })) return true;
+            return false;
+        }
+
+        // inAir: mounted in blimp — movement handled by vehicle, player just follows
+        return true;
     }
     toggleSprite(sprite)
     {
@@ -189,7 +216,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     }
     mount(vehicle)
     {
-        if(this.z != CM.GroundLevel) return false;
+        if(this.z != CM.GroundLevel && Math.abs(this.z - CM.FloatLevel) > 0.25) return false;
         if(vehicle != null)
         {
             if(this.isInRange(vehicle)){
@@ -202,18 +229,20 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         return false;
     }
     dismount(){
-        if(this.tileInfoRetriever)
-        {
-            var dismountPos = this.getBoundingPos(0,0);
-            if(!this.tileInfoRetriever(dismountPos).isLand())
+        var onIsland = this.vehicle && this.vehicle.isOnIsland && this.vehicle.isOnIsland();
+        if(!onIsland) {
+            if(this.tileInfoRetriever)
             {
-                if(!this.bridgeRetriever || !this.bridgeRetriever(dismountPos)) return null;
+                var dismountPos = this.getBoundingPos(0,0);
+                if(!this.tileInfoRetriever(dismountPos).isLand())
+                {
+                    if(!this.bridgeRetriever || !this.bridgeRetriever(dismountPos)) return null;
+                }
             }
+            if(this.z != CM.GroundLevel) return null;
         }
-        if(this.z != CM.GroundLevel) return null;
         var v = this.vehicle;
         this.vehicle.setMountedState(false);
-        
         this.vehicle = null;
         return v;
     }
