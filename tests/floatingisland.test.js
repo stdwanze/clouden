@@ -45,9 +45,12 @@ describe('CM.FloatingIsland constructor', () => {
         expect(island.handlesOwnAlpha).toBe(true);
     });
 
-    test('uses defaultShape when no shape given', () => {
+    test('uses generateShape when no shape given', () => {
         const island = new CM.FloatingIsland(new CM.Point(0, 0));
-        expect(island.tiles).toEqual(CM.FloatingIsland.defaultShape());
+        expect(Array.isArray(island.tiles)).toBe(true);
+        expect(Array.isArray(island.tiles[0])).toBe(true);
+        const flat = island.tiles.reduce((a, r) => a.concat(r), []);
+        expect(flat.some(v => v === 1)).toBe(true);
     });
 
     test('accepts a custom shape', () => {
@@ -94,6 +97,39 @@ describe('CM.FloatingIsland.defaultShape()', () => {
         const s = CM.FloatingIsland.defaultShape();
         const flat = s.reduce((a, r) => a.concat(r), []);
         expect(flat.some(v => v === 1)).toBe(true);
+    });
+});
+
+// ── generateShape ─────────────────────────────────────────────────────────────
+
+describe('CM.FloatingIsland.generateShape()', () => {
+    test('returns a 2-D array', () => {
+        const s = CM.FloatingIsland.generateShape();
+        expect(Array.isArray(s)).toBe(true);
+        expect(Array.isArray(s[0])).toBe(true);
+    });
+
+    test('all rows have equal length', () => {
+        const s = CM.FloatingIsland.generateShape();
+        const len = s[0].length;
+        s.forEach(row => expect(row.length).toBe(len));
+    });
+
+    test('contains only 0 and 1', () => {
+        const s = CM.FloatingIsland.generateShape();
+        s.forEach(row => row.forEach(v => expect([0, 1]).toContain(v)));
+    });
+
+    test('has at least one tile set to 1', () => {
+        const s = CM.FloatingIsland.generateShape();
+        const flat = s.reduce((a, r) => a.concat(r), []);
+        expect(flat.some(v => v === 1)).toBe(true);
+    });
+
+    test('size varies between calls', () => {
+        const shapes = Array.from({ length: 6 }, () => CM.FloatingIsland.generateShape());
+        const sizes  = shapes.map(s => s.length * 1000 + s[0].length);
+        expect(new Set(sizes).size).toBeGreaterThan(1);
     });
 });
 

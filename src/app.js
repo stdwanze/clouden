@@ -103,7 +103,12 @@ CM.CloudEngine=    class CloudEngine{
                              return isl.containsRect(self.player.position.x, self.player.position.y, 1, 1);
                          }));
                     this.renderer.playerOnIsland = _onIsland;
-                    this.renderer.setZoom(_onIsland ? CM.GroundLevel : this.player.z);
+                    if (_onIsland) {
+                        var _cur = isFinite(this.renderer.zoom) ? this.renderer.zoom : CM.FloatLevel;
+                        this.renderer.setZoom(_cur + (CM.GroundLevel - _cur) * 0.08);
+                    } else {
+                        this.renderer.setZoom(this.player.z);
+                    }
                     this.renderer.clear();
                     this.renderer.updatePos(this.player.position);
                     this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
@@ -1277,10 +1282,10 @@ CM.CloudEngine=    class CloudEngine{
 
                 // Floating islands — reachable only by blimp at CM.FloatLevel
                 [
-                    new CM.Point(400,  350),
-                    new CM.Point(900,  200),
-                    new CM.Point(200,  750),
-                    new CM.Point(1100, 600),
+                    new CM.Point( 600,  400),
+                    new CM.Point(2800,  350),
+                    new CM.Point( 450, 2600),
+                    new CM.Point(2700, 2400),
                 ].forEach(pos => {
                     this.world.addObject(new CM.FloatingIsland(pos, null, this.imagerepo.getImage('tile_island')));
                 });
