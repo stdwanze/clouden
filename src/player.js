@@ -144,15 +144,22 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
                             return isl.containsRect(this.position.x, this.position.y, 1, 1);
                         }.bind(this));
         if (onGround) {
-            // ground rules: must step onto land or bridge, never onto an island footprint
+            // ground rules: must step onto land or bridge
             var tileInfo = this.tileInfoRetriever(newPos);
             var hasGround = tileInfo && tileInfo.isLand();
             var hasBridge = this.bridgeRetriever && this.bridgeRetriever(newPos);
             if (!hasGround && !hasBridge) return false;
-            // island tiles sit above ground — block walking into their footprint
+
+            // island tiles sit above ground — normally block walking into footprint,
+            // but allow movement when the player is already under the island.
+            var isCurrentlyUnderIsland = this.islandRetriever && this.islandRetriever().some(function(isl) {
+                return isl.containsRect(this.position.x, this.position.y, 1, 1);
+            }.bind(this));
             if (this.islandRetriever && this.islandRetriever().some(function(isl) {
                 return isl.containsRect(newPos.x, newPos.y, 1, 1);
-            })) return false;
+            })) {
+                if (!isCurrentlyUnderIsland) return false;
+            }
             return true;
         }
 
