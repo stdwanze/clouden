@@ -5,10 +5,38 @@ CM.Inventory = class Inventory {
         this.slots = new Array(16).fill(null);
         this.open = false;
         this.imagerepo = imagerepo || null;
+        this.selectedSlot = 0;
     }
 
     toggle() {
         this.open = !this.open;
+        if (this.open === false) {
+            this.selectedSlot = 0;
+        }
+    }
+
+    moveSelection(dx, dy) {
+        var cols = 4;
+        var rows = 4;
+        var col = this.selectedSlot % cols;
+        var row = Math.floor(this.selectedSlot / cols);
+        col = (col + dx + cols) % cols;
+        row = (row + dy + rows) % rows;
+        this.selectedSlot = row * cols + col;
+    }
+
+    getSelectedItem() {
+        return this.slots[this.selectedSlot];
+    }
+
+    removeSelectedItem() {
+        var slot = this.slots[this.selectedSlot];
+        if (!slot) return false;
+        slot.count--;
+        if (slot.count <= 0) {
+            this.slots[this.selectedSlot] = null;
+        }
+        return true;
     }
 
     isOpen() {
@@ -78,7 +106,8 @@ CM.Inventory = class Inventory {
             var y = startY + row * (SLOT + GAP);
 
             // slot border
-            renderer.drawRectangleStatic(x - 1, y - 1, SLOT + 2, SLOT + 2, '#3a4a5a');
+            var borderColor = (this.open && i === this.selectedSlot) ? '#ffd700' : '#3a4a5a';
+            renderer.drawRectangleStatic(x - 1, y - 1, SLOT + 2, SLOT + 2, borderColor);
             // slot fill
             renderer.drawRectangleStatic(x, y, SLOT, SLOT, 'rgba(35,40,55,0.95)');
 
