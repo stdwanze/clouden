@@ -30,6 +30,9 @@ CM.CloudEngine=    class CloudEngine{
             this.buildMenuIndex = 0;
             this.bridgePlacementMode = false;
             this.storm = new CM.StormManager();
+
+            this.torchActive = false;
+            this.torchTimer = 0; // frames
         }
 
         run(){
@@ -65,10 +68,19 @@ CM.CloudEngine=    class CloudEngine{
                         }
                     }
 
-                    // interacte player with world
+                    // interacte player mit Welt
                     this.tryCollect();
                     this.tryRefuelBlimp();
                     this.checkAutoHeal();
+
+                    // Fackel-Timer
+                    if (this.torchActive) {
+                        this.torchTimer--;
+                        if (this.torchTimer <= 0) {
+                            this.torchActive = false;
+                            this.notify('Fackel ist erloschen.', 120);
+                        }
+                    }
 
                     // tick all objects (wind/AI may move player)
                     var k = this.inputHandler.currentKeys;
@@ -180,6 +192,11 @@ CM.CloudEngine=    class CloudEngine{
                     var playerScores = this.player.getScores().getAll();
                     var dmg = 4 + this.player.bowLevel;
                     this.osd.displayScores(playerScores, "BOTTOM-LEFT", 0, "Spieler", { 'AMMO': '' + dmg });
+
+                    if (this.torchActive) {
+                        var sec = Math.max(0, Math.ceil(this.torchTimer / 60));
+                        this.renderer.fillTextStaticColor('Fackel: ' + sec + 's', 10, 70, 14, '#ffd700');
+                    }
 
                     if(this.player.isMounted()){
                         var vScores = this.player.getMountScores().getAll();
@@ -361,6 +378,24 @@ CM.CloudEngine=    class CloudEngine{
                 return;
             }
 
+            if (this.inventory.isOpen()) {
+                if (k === 13 || k === 32) {
+                    this.tryUseSelectedInventory();
+                } else if (k === 37) {
+                    this.inventory.moveSelection(-1, 0);
+                } else if (k === 39) {
+                    this.inventory.moveSelection(1, 0);
+                } else if (k === 38) {
+                    this.inventory.moveSelection(0, -1);
+                } else if (k === 40) {
+                    this.inventory.moveSelection(0, 1);
+                } else if (k === 73 || k === 27) {
+                    this.inventory.toggle();
+                    this.paused = this.inventory.isOpen();
+                }
+                return;
+            }
+
             if (this.buildMenuOpen) {
                 if (k === 13) {
                     var items = this.getBuildItems();
@@ -415,7 +450,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         handleMove(_k,currentlyPressed)
         {
-            if (this.buildMenuOpen || this.hutMenuOpen) return;
+            if (this.buildMenuOpen || this.hutMenuOpen || this.inventory.isOpen()) return;
             var moving = false;
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
@@ -582,6 +617,45 @@ CM.CloudEngine=    class CloudEngine{
             if (slots[wi].count === 0) slots[wi] = null;
             ammo.up(3);
             this.notify('+3 Pfeile hergestellt (' + ammo.getScore() + '/' + ammo.getMax() + ')', 120);
+        }
+        tryCraftTorch() {
+            if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
+            var slots = this.inventory.slots;
+            var wi = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
+            var ri = slots.findIndex(function(s) { return s && s.type === 'REED'; });
+            var woodHave = wi >= 0 ? slots[wi].count : 0;
+            var reedHave = ri >= 0 ? slots[ri].count : 0;
+            if (woodHave < 1 || reedHave < 1) {
+                var missing = [];
+                if (woodHave < 1) missing.push('1 Holz (vorhanden: ' + woodHave + ')');
+                if (reedHave < 1) missing.push('1 Reed (vorhanden: ' + reedHave + ')');
+                this.notify('Benötigt: ' + missing.join(' + '), 180);
+                return;
+            }
+            slots[wi].count -= 1; if (slots[wi].count === 0) slots[wi] = null;
+            slots[ri].count -= 1; if (slots[ri].count === 0) slots[ri] = null;
+            this.inventory.addItem('TORCH');
+            this.notify('Fackel hergestellt!', 120);
+        }
+        tryUseSelectedInventory() {
+            if (!this.inventory.isOpen()) return;
+            var item = this.inventory.getSelectedItem();
+            if (!item) {
+                this.notify('Kein Item ausgewählt.', 120);
+                return;
+            }
+            if (item.type === 'TORCH') {
+                if (this.torchActive) {
+                    this.notify('Fackel ist bereits an.', 120);
+                    return;
+                }
+                this.inventory.removeSelectedItem();
+                this.torchActive = true;
+                this.torchTimer = 60 * 60; // 1 Minute bei 60 FPS
+                this.notify('Fackel angezündet! (1 Minute)', 120);
+                return;
+            }
+            this.notify('Dieses Item kann nicht benutzt werden: ' + item.type, 120);
         }
         tryBuildBed() {
             if (!this.nearbyHut || this.nearbyHut.hasBed) return;
@@ -816,6 +890,16 @@ CM.CloudEngine=    class CloudEngine{
                             ctx.fillStyle = '#888'; ctx.fillRect(cx + 7, ay - 2, 5, 4);
                             ctx.fillStyle = '#cc8844'; ctx.fillRect(cx - 16, ay - 2, 4, 4);
                         }
+                    }
+                },
+                {
+                    name: 'Fackel herstellen',
+                    sub: '1 Holz + 1 Reed',
+                    action: function() { self.tryCraftTorch(); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy - 12, 4, 24); // handle
+                        ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(cx, cy - 14, 8, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(cx, cy - 16, 6, 0, Math.PI * 2); ctx.fill();
                     }
                 }
             ];
@@ -1316,14 +1400,14 @@ CM.CloudEngine=    class CloudEngine{
                         window.setTimeout(callback, 1000 / 30);
                     };
                 })();
-                this.inputHandler.on("letterKeys",this.handleInteractions.bind(this));
+                this.inputHandler.on("letterKeys", this.handleInteractions.bind(this));
+                this.inputHandler.on("arrowKeys", this.handleInteractions.bind(this));
                 this.inputHandler.on("keyup", this.handleStop.bind(this));
                 this.inputHandler.onGamepadConnected = null;
                 this.inputHandler.onGamepadDisconnected = null;
                 var self3 = this;
                 this.inputHandler.on("keydown", function(k) {
-                    if (k === 13 || k === 27 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
-                    if ((self3.buildMenuOpen || self3.hutMenuOpen) && (k === 37 || k === 38 || k === 39 || k === 40)) self3.handleInteractions(k);
+                    if (k === 13 || k === 27 || k === 73 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
                 });
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo, this.inputHandler);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
