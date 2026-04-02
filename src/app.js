@@ -1407,7 +1407,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.inputHandler.onGamepadDisconnected = null;
                 var self3 = this;
                 this.inputHandler.on("keydown", function(k) {
-                    if (k === 13 || k === 27 || k === 73 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
+                    if (k === 13 || k === 27 || (k >= 49 && k <= 57)) self3.handleInteractions(k);
                 });
                 this.osdocu = new CM.OnScreenDocu(new CM.Point(-150,-100), this.imagerepo, this.inputHandler);
                 document.getElementById('helpBtn').addEventListener('click', () => this.osdocu.toggle());
