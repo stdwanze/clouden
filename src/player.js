@@ -14,6 +14,7 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
         this.scores.add(new CM.Health(10));
         this.scores.add(new CM.Ammo(10));
         this.scores.add(new CM.Coins());
+        this.scores.add(new CM.Crystals());
 
         this.direction = new CM.Point(6,0);
         this.gunDirection = null;
@@ -38,6 +39,10 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     setIslandRetriever(retriever)
     {
         this.islandRetriever = retriever;
+    }
+    setCaveTileInfoRetriever(retriever)
+    {
+        this.caveTileInfoRetriever = retriever;
     }
     setFireBallCreator(creator)
     {
@@ -135,6 +140,13 @@ CM.CloudPlayer = class Player extends CM.MoveableObject {
     {
         var newPos = this.getBoundingPos(x,y);
         newPos.move(x,y);
+
+        // Cave level: use cave tile collision
+        if (this.z >= CM.CaveLevel - 0.1) {
+            if (!this.caveTileInfoRetriever) return true;
+            var caveTile = this.caveTileInfoRetriever(newPos);
+            return !!(caveTile && caveTile.isLand());
+        }
 
         // determine current altitude state
         var onGround  = this.z >= CM.GroundLevel - 0.05;

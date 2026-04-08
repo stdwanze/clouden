@@ -205,6 +205,43 @@ CM.Collectable = class Collectable extends CM.Sprite
     }
    
 }
+CM.Chest = class Chest extends CM.Sprite {
+    constructor(location, image) {
+        super(image, location, CM.CaveLevel, false, 0.8);
+        this.interactable = true;
+        this.isChest = true;
+        this.opened = false;
+    }
+
+    open(caveWorld, imagerepo) {
+        if (this.opened) return null;
+        this.opened = true;
+        var lootPool = [
+            { img: 'ammo_10',  type: 'AMMO',   val: 10 },
+            { img: 'health_10',type: 'HEALTH',  val: 10 },
+            { img: 'coin_10',  type: 'COINS',   val: 20 },
+            { img: 'crystal',  type: 'CRYSTAL', val: 3  },
+        ];
+        var item = lootPool[Math.floor(CM.rng() * lootPool.length)];
+        return new CM.Collectable(
+            this.position.clone().move(5, 5),
+            imagerepo.getImage(item.img), item.type, item.val, 0.4
+        );
+    }
+
+    draw(renderer) {
+        super.draw(renderer);
+        if (this.opened) {
+            // tint opened chest darker via semi-transparent overlay
+            var ctx = renderer.ctxt;
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            super.draw(renderer);
+            ctx.restore();
+        }
+    }
+}
+
 CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
     constructor(location,image,z,scalingfactor)
     {

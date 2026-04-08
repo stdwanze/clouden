@@ -10,6 +10,11 @@ CM.WindLayers = [
     { zMin: CM.Max,             zMax: CM.Max + 0.4,        wind: { x: -0.12, y:  0.0  } }, // hoch: W
 ];
 
+CM.CaveLevel = 3.5;
+CM.skyMapFound = false;
+CM.skyMapSpawned = false;
+CM.caveEntrancePositions = [];
+
 CM.currentSeed = null;
 CM.gamepadActive = false;
 

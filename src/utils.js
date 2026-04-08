@@ -87,8 +87,9 @@ CM.InputHandler = class InputHandler{
             4:  65,  // LB      → A (ascend)
             5:  83,  // RB      → S (descend)
             9:  73,  // Start   → I (inventory)
-            7:  67,  // RT       → C (fire)
+            7:  67,  // RT      → C (fire)
             11: 67,  // RS-Click → C (fire)
+            8:  72,  // Select  → H (Blockhütte)
         };
     }
     init(){

@@ -352,6 +352,13 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
             info.isMountain = true;
         }
 
+        // Cave entrance: rare land tile far from spawn
+        var distFromSpawn = Math.sqrt(tileX * tileX + tileY * tileY);
+        if (info.isLand && !isMountain && distFromSpawn > 30 && CM.rng() < 0.0004) {
+            info.isCaveEntrance = true;
+            CM.caveEntrancePositions.push({ tileX: tileX, tileY: tileY });
+        }
+
         var c = !info.isLand && !isMountain ? "tile_water" : biomeNames[biomeIndex];
         var image = imagerepo.getImage(c);
         var ts = new CM.TileSprite(new CM.Point(location.x+i*tileSize,location.y+k*tileSize),tileSize,image,info);
@@ -368,10 +375,97 @@ CM.TILECREATOR = function (imagerepo,widthInTiles)
             if(info.decals) ts.addDecals(imagerepo.getImage("decal_land_vegetation_"+num), new CM.Point(2+Math.floor(CM.rng()*10),2+Math.floor(CM.rng()*10)));
         }
 
+        if (info.isCaveEntrance) ts.addOverlay(imagerepo.getImage('tile_cave_entrance'));
+
         return ts;
     }
 
 }
+
+CM.CAVE_TILECREATOR = function(imagerepo, widthInTiles, entrancePositions) {
+    var array = CM.BuildWorld(widthInTiles);
+    array = CM.AnnotateWorld(array, widthInTiles, '#222');
+
+    return function(i, k, location, tileSize, worldx, worldy) {
+        var info = array[(worldy + k) * widthInTiles + (i + worldx)];
+        var tileX = worldx + i;
+        var tileY = worldy + k;
+
+        // Spawn area always walkable
+        if (worldx === 0 && worldy === 0 && i < 3 && k < 3) info.isLand = true;
+
+        // Exit tiles: positions matching surface entrances
+        info.isCaveExit = (entrancePositions || []).some(function(ep) {
+            return ep.tileX === tileX && ep.tileY === tileY;
+        });
+        if (info.isCaveExit) info.isLand = true;
+
+        var imgKey = info.isLand ? 'tile_cave_floor' : 'tile_cave_rock';
+        var image = imagerepo.getImage(imgKey);
+        var ts = new CM.TileSprite(
+            new CM.Point(location.x + i * tileSize, location.y + k * tileSize),
+            tileSize, image, info
+        );
+
+        if (info.isCaveExit) ts.addOverlay(imagerepo.getImage('tile_cave_exit'));
+
+        return ts;
+    };
+};
+
+CM.CAVE_COLLECTABLEMAKER = function(caveWorld, imagerepo) {
+    return function(tile) {
+        if (!tile.isLand() || tile.info.isCaveExit) return;
+        var rand = CM.rng();
+
+        if (rand < 0.06) {
+            caveWorld.addObject(new CM.Collectable(
+                tile.location.clone().move(10, 10),
+                imagerepo.getImage('crystal'), 'CRYSTAL', 1, 0.5
+            ));
+        } else if (rand < 0.062 && !CM.skyMapSpawned) {
+            CM.skyMapSpawned = true;
+            caveWorld.addObject(new CM.Collectable(
+                tile.location.clone().move(10, 10),
+                imagerepo.getImage('skymap'), 'SKYMAP', 1, 0.8
+            ));
+        } else if (rand < 0.063) {
+            var chest = new CM.Chest(tile.location.clone().move(8, 8), imagerepo.getImage('chest'));
+            chest.setRemover(caveWorld.removeObject.bind(caveWorld));
+            caveWorld.addObject(chest);
+        }
+    };
+};
+
+CM.ADDENEMYMAKER_CAVE = function(caveWorld, imagerepo) {
+    function makeCaveCrab(x1, y1, idx) {
+        var key = 'cavecrab' + x1 + '_' + y1 + '_' + idx;
+        if (caveWorld.getHitablesByKey(key)) return;
+        var c = caveWorld.getChunkByIndeces(x1, y1);
+        if (!c) return;
+        var landTiles = c.getTiles().filter(function(t) { return t.isLand() && !t.info.isCaveExit; });
+        if (landTiles.length === 0) return;
+        var tile = landTiles[Math.floor(CM.rng() * landTiles.length)];
+
+        var crab = new CM.CaveCrab(tile.location.clone(), imagerepo.getImage('crab'));
+        crab.setTileInfoRetriever(CM.TILEACCESS(caveWorld));
+        crab.setRemover(caveWorld.removeObject.bind(caveWorld));
+        crab.setScarecrowGetter(function() { return []; });
+        caveWorld.addObject(crab);
+        caveWorld.addHitable(key, crab);
+    }
+
+    return function(x, y) {
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                var cx = x + dx, cy = y + dy;
+                if (cx < 0 || cy < 0) continue;
+                for (var i = 0; i < 2; i++) makeCaveCrab(cx, cy, i);
+            }
+        }
+    };
+};
+
 CM.CLOUDGEN = function (world,repo){
 
     return  function (startPosX,startPosY)

@@ -98,6 +98,77 @@ CM.GroundEnemy = class GroundEnemy extends CM.Sprite {
     }
 }
 
+CM.CaveCrab = class CaveCrab extends CM.GroundEnemy {
+    constructor(location, image) {
+        super(location, image);
+        // 2/3 der Größe von GroundEnemy (0.3 * 2/3 = 0.2)
+        this.scalingfactor = 0.2;
+        this.sizeX = image.width  * 0.2;
+        this.sizeY = image.height * 0.2;
+        this.speed = 1.1;
+        this.DAMAGE_COOLDOWN_RESET = 40;
+        this.z = CM.CaveLevel;
+        this.isCaveCrab = true;
+    }
+
+    draw(renderer) {
+        var ctx = renderer.ctxt;
+        ctx.save();
+        ctx.filter = 'hue-rotate(105deg) saturate(0.7) brightness(0.55)';
+        super.draw(renderer);
+        ctx.restore();
+    }
+
+    tick(player, _playerMoving, torchActive) {
+        if (player == null) return;
+        if (player.z < CM.CaveLevel - 0.3) return;
+
+        this.playerDist = CM.distance(this.position, player.position);
+        this.idleSoundId = CM.Sound.updateSpatialLoop('crab_idle', this.idleSoundId, this.playerDist, 200, 2);
+
+        if (this.getScarecrows) {
+            var scarecrows = this.getScarecrows();
+            for (var i = 0; i < scarecrows.length; i++) {
+                var sc = scarecrows[i];
+                if (CM.distance(this.position, sc.position) < sc.repelRadius) {
+                    var flee = CM.getVector(sc.position, this.position, 1);
+                    var fdx = flee.x * this.speed;
+                    var fdy = flee.y * this.speed;
+                    if      (this.canMoveTo(fdx, fdy)) { this.move(fdx, fdy); this.toggleAnimation(true); }
+                    else if (this.canMoveTo(fdx, 0))   { this.move(fdx, 0);   this.toggleAnimation(true); }
+                    else if (this.canMoveTo(0,   fdy)) { this.move(0,   fdy); this.toggleAnimation(true); }
+                    else                               {                       this.toggleAnimation(false); }
+                    if (this.damageCooldown > 0) this.damageCooldown--;
+                    return;
+                }
+            }
+        }
+
+        var aggroRadius = torchActive ? 200 : 50;
+        if (this.playerDist < aggroRadius) {
+            var movement = CM.getVector(this.position, player.position, 1);
+            var dx = movement.x * this.speed;
+            var dy = movement.y * this.speed;
+
+            var moved = false;
+            if (this.canMoveTo(dx, dy))     { this.move(dx, dy); moved = true; }
+            else if (this.canMoveTo(dx, 0)) { this.move(dx, 0);  moved = true; }
+            else if (this.canMoveTo(0, dy)) { this.move(0,  dy); moved = true; }
+            this.toggleAnimation(moved);
+
+            if (this.playerDist < 15 && this.damageCooldown === 0) {
+                player.hit(1);
+                CM.Sound.playAt('crab_attack', this.playerDist, 150);
+                this.damageCooldown = this.DAMAGE_COOLDOWN_RESET;
+            }
+        } else {
+            this.toggleAnimation(false);
+        }
+
+        if (this.damageCooldown > 0) this.damageCooldown--;
+    }
+}
+
 CM.Dragon = class Dragon extends CM.VehicleSprite
 {
     constructor(location, image)

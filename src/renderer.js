@@ -150,4 +150,32 @@ CM.Renderer = class Renderer {
         this.ctxt.font = size + "px Ariel black";
         this.ctxt.fillText(text,x,y);
     }
+
+    drawCaveDarkness(playerScreenX, playerScreenY, torchActive) {
+        var ctx = this.ctxt;
+        var w = this.canvas.width;
+        var h = this.canvas.height;
+        var innerR = torchActive ? 150 : 80;
+        var outerR = torchActive ? 260 : 130;
+
+        // Radial gradient: transparent at player, dark at outerR
+        var grad = ctx.createRadialGradient(
+            playerScreenX, playerScreenY, innerR,
+            playerScreenX, playerScreenY, outerR
+        );
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.97)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Fill corners fully (beyond outerR radius)
+        ctx.fillStyle = 'rgba(0,0,0,0.97)';
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(playerScreenX, playerScreenY, outerR, 0, Math.PI * 2);
+        ctx.rect(w, 0, -w, h); // full rect minus the circle
+        ctx.fill('evenodd');
+        ctx.restore();
+    }
 }

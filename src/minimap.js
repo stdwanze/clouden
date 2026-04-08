@@ -53,6 +53,12 @@ CM.Minimap = class Minimap {
                         ctx.fillStyle = '#4a7a3a';
                         ctx.fillRect(Math.floor(mx), Math.floor(my), tilePixels, tilePixels);
                     }
+                    if (tile.info && tile.info.isCaveEntrance) {
+                        ctx.fillStyle = '#c87820';
+                        ctx.beginPath();
+                        ctx.arc(Math.floor(mx) + 1, Math.floor(my) + 1, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
             }
         }

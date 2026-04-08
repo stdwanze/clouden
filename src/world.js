@@ -70,6 +70,8 @@ CM.TileInfo = class TileInfo{
         this.chunkborder = chunkborder;
         this.color = color;
         this.isMountain = false;
+        this.isCaveEntrance = false;
+        this.isCaveExit = false;
     }
 }
 CM.Chunk = class Chunk {

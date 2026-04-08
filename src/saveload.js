@@ -1,14 +1,16 @@
 CM = window.CM || {};
 
 CM.SaveLoad = (function() {
-    var STORAGE_KEY = 'clouden_save_v2';
+    var STORAGE_KEY = 'clouden_save_v3';
 
     // Image key lookup for reconstructing collectables on load
     var COLLECTABLE_IMAGE = {
-        COINS:  'coin_10',
-        AMMO:   'ammo_10',
-        HEALTH: 'health_10',
-        FUEL:   'fuel_10'
+        COINS:   'coin_10',
+        AMMO:    'ammo_10',
+        HEALTH:  'health_10',
+        FUEL:    'fuel_10',
+        CRYSTAL: 'crystal',
+        SKYMAP:  'skymap',
     };
 
     var MINEABLE_IMAGE = {
@@ -25,7 +27,7 @@ CM.SaveLoad = (function() {
         if (!json) return null;
         try {
             var state = JSON.parse(json);
-            return (state && state.v === 2 && state.seed != null) ? state.seed : null;
+            return (state && state.v === 3 && state.seed != null) ? state.seed : null;
         } catch(e) { return null; }
     }
 
@@ -77,8 +79,22 @@ CM.SaveLoad = (function() {
             }
         });
 
+        var caveCollectables = [];
+        if (engine.caveWorld) {
+            engine.caveWorld.getObjects().forEach(function(obj) {
+                if (obj.collectable) {
+                    caveCollectables.push({
+                        x: obj.position.x, y: obj.position.y,
+                        typeName: obj.typeName,
+                        pointvalue: obj.pointvalue,
+                        scale: obj.scalingfactor
+                    });
+                }
+            });
+        }
+
         var state = {
-            v: 2,
+            v: 3,
             seed: CM.currentSeed,
             player: {
                 x: player.position.x, y: player.position.y,
@@ -88,9 +104,14 @@ CM.SaveLoad = (function() {
             mineables:       mineables,
             collectables:    collectables,
             blimps:          blimps,
-            blockhuts:       blockhuts,
-            vogelscheuchen:  vogelscheuchen,
-            npcs:            npcs
+            blockhuts:        blockhuts,
+            vogelscheuchen:   vogelscheuchen,
+            npcs:             npcs,
+            cave: {
+                skyMapFound:   !!CM.skyMapFound,
+                skyMapSpawned: !!CM.skyMapSpawned,
+                collectables:  caveCollectables,
+            }
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -103,7 +124,7 @@ CM.SaveLoad = (function() {
 
         var state;
         try { state = JSON.parse(json); } catch(e) { return false; }
-        if (!state || state.v !== 2) return false;
+        if (!state || state.v !== 3) return false;
 
         var player = engine.player;
 
@@ -180,6 +201,24 @@ CM.SaveLoad = (function() {
         (state.vogelscheuchen || []).forEach(function(v) {
             engine.world.addObject(new CM.Vogelscheuche(new CM.Point(v.x, v.y)));
         });
+
+        // --- Cave state ---
+        if (state.cave) {
+            CM.skyMapFound   = !!state.cave.skyMapFound;
+            CM.skyMapSpawned = !!state.cave.skyMapSpawned;
+            if (engine.caveWorld && state.cave.collectables) {
+                engine.caveWorld.objects = engine.caveWorld.objects.filter(function(o) { return !o.collectable; });
+                state.cave.collectables.forEach(function(c) {
+                    var imgKey = COLLECTABLE_IMAGE[c.typeName];
+                    if (!imgKey) return;
+                    engine.caveWorld.addObject(new CM.Collectable(
+                        new CM.Point(c.x, c.y),
+                        engine.imagerepo.getImage(imgKey),
+                        c.typeName, c.pointvalue, c.scale
+                    ));
+                });
+            }
+        }
 
         // --- NPCs ---
         var npcObjects = engine.world.getObjects().filter(function(o) { return o.isNPC; });

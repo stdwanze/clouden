@@ -120,6 +120,14 @@ CM.Health = class Health extends CM.Score
         super(0,200,1,"COINS",0);
      }
  }
+
+ CM.Crystals = class Crystals extends CM.Score
+ {
+    constructor()
+     {
+        super(0,99,1,"CRYSTAL",0);
+     }
+ }
  
  CM.ScoreSet = class SimSet {
 

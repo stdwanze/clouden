@@ -33,6 +33,9 @@ CM.CloudEngine=    class CloudEngine{
 
             this.torchActive = false;
             this.torchTimer = 0; // frames
+            this.inCave = false;
+            this.caveTransitionFrames = 0;
+            this.caveWorld = null;
         }
 
         run(){
@@ -52,6 +55,7 @@ CM.CloudEngine=    class CloudEngine{
 
                     // handle movement every frame for smooth input
                     this.handleMove(null, this.inputHandler.calcCurrentlyPressed());
+                    this.checkCaveTransition();
                     var heldKeys = this.inputHandler.currentKeys;
                     if (!this.buildMenuOpen) {
                         var _blimpV = this.player.isMounted() ? this.player.vehicle : null;
@@ -85,14 +89,24 @@ CM.CloudEngine=    class CloudEngine{
                     // tick all objects (wind/AI may move player)
                     var k = this.inputHandler.currentKeys;
                     var playerMoving = !!(k[37] || k[38] || k[39] || k[40]);
-                    this.world.getObjects().forEach(element => {
-                        element.tick(this.player, playerMoving);
-                    });
+                    if (this.inCave) {
+                        this.caveWorld.getObjects().forEach(element => {
+                            if (element.isCaveCrab) {
+                                element.tick(this.player, playerMoving, this.torchActive);
+                            } else {
+                                element.tick(this.player, playerMoving);
+                            }
+                        });
+                    } else {
+                        this.world.getObjects().forEach(element => {
+                            element.tick(this.player, playerMoving);
+                        });
+                    }
                     this.player.tick();
 
-                    // storm tick + ground-strike spawning
+                    // storm tick + ground-strike spawning (nicht in der Höhle)
                     this.storm.tick();
-                    if (this.storm.hasPendingStrike()) {
+                    if (!this.inCave && this.storm.hasPendingStrike()) {
                         var sx = this.player.position.x + (Math.random() - 0.5) * 500;
                         var sy = this.player.position.y + (Math.random() - 0.5) * 500;
                         this.storm.addStrike(sx, sy);
@@ -123,29 +137,43 @@ CM.CloudEngine=    class CloudEngine{
                     }
                     this.renderer.clear();
                     this.renderer.updatePos(this.player.position);
-                    this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
 
-                    // draw world
-                    this.world.getScene(this.player.position).forEach(element => {
-                        this.renderer.draw(element);
-                    });
-
-                    // draw movableobjects
-                    this.world.getObjects().forEach(element =>
-                    {
-                        if(this.player.z >= element.z+0.3 && !element.handlesOwnAlpha)
+                    if (this.inCave) {
+                        this.renderer.drawRectangleStatic(0, 0,
+                            this.renderer.getScreenWidth(), this.renderer.getScreenHeight(), '#1a1210');
+                        this.caveWorld.getScene(this.player.position).forEach(element => {
+                            this.renderer.draw(element);
+                        });
+                        this.caveWorld.getObjects().forEach(element => {
+                            if (this.player.z >= element.z + 0.3 && !element.handlesOwnAlpha) {
+                                this.renderer.lighter();
+                            }
+                            this.renderer.draw(element);
+                            this.renderer.restore();
+                        });
+                    } else {
+                        this.renderer.drawWaterBackground(this.imagerepo.getImage("tile_water"));
+                        // draw world
+                        this.world.getScene(this.player.position).forEach(element => {
+                            this.renderer.draw(element);
+                        });
+                        // draw movableobjects
+                        this.world.getObjects().forEach(element =>
                         {
-                            this.renderer.lighter()
-                        }
-                        this.renderer.draw(element);
-                        this.renderer.restore();
-                    });
+                            if(this.player.z >= element.z+0.3 && !element.handlesOwnAlpha)
+                            {
+                                this.renderer.lighter()
+                            }
+                            this.renderer.draw(element);
+                            this.renderer.restore();
+                        });
+                    }
 
                     //draw Player
                     this.renderer.draw(this.player);
 
-                    // storm visual effects
-                    if (this.storm.isActive()) {
+                    // storm visual effects (nicht in der Höhle)
+                    if (!this.inCave && this.storm.isActive()) {
                         var _sw = this.renderer.getScreenWidth();
                         var _sh = this.renderer.getScreenHeight();
                         // darken + grey-tint the scene
@@ -180,6 +208,13 @@ CM.CloudEngine=    class CloudEngine{
                         }
                     }
 
+                    // Cave darkness overlay
+                    if (this.inCave) {
+                        var _cw = this.renderer.getScreenWidth() / 2;
+                        var _ch = this.renderer.getScreenHeight() / 2;
+                        this.renderer.drawCaveDarkness(_cw, _ch, this.torchActive);
+                    }
+
                     // hit flash overlay
                     if(this.player.hitFlashFrames > 0) {
                         var alpha = (this.player.hitFlashFrames / 20) * 0.25;
@@ -204,7 +239,7 @@ CM.CloudEngine=    class CloudEngine{
                         CM.Sound.fuelWarning(this.player.getMountScores().get("FUEL"));
                         this.drawWindRose(this.player.vehicle);
                     }
-                    this.drawStormWarning();
+                    if (!this.inCave) this.drawStormWarning();
                 }
                 else
                 {
@@ -247,7 +282,14 @@ CM.CloudEngine=    class CloudEngine{
             if (this.nearbyHut) this.drawHutOverlay(this.nearbyHut);
             if (this.nearbyNPC) this.drawNPCOverlay(this.nearbyNPC);
             this.drawActiveQuest();
-            this.minimap.draw(this.renderer, this.player, this.world);
+            if (!this.inCave) {
+                this.minimap.draw(this.renderer, this.player, this.world);
+            } else {
+                var _ctx2 = this.renderer.ctxt;
+                _ctx2.font = '12px monospace';
+                _ctx2.fillStyle = 'rgba(180,150,80,0.85)';
+                _ctx2.fillText('[ Höhle ]', this.renderer.getScreenWidth() - 80, 20);
+            }
             if (this.buildMenuOpen) this.drawBuildMenu();
             if (this.bridgePlacementMode) {
                 var _r = this.renderer;
@@ -294,12 +336,54 @@ CM.CloudEngine=    class CloudEngine{
             if (depleted) this.inventory.addItem(type);
         }
         tryCollect(){
-            var obj = this.world.getNearestObject(this.player.position,"collectable");
+            var activeWorld = this.inCave ? this.caveWorld : this.world;
+            var self = this;
+
+            // Chest interaction in cave
+            if (this.inCave) {
+                activeWorld.getObjects().forEach(function(obj) {
+                    if (obj.isChest && !obj.opened &&
+                        CM.distance(self.player.position, obj.position) < 30) {
+                        var drop = obj.open(self.caveWorld, self.imagerepo);
+                        if (drop) {
+                            self.caveWorld.addObject(drop);
+                            self.notify('Truhe geöffnet!', 90);
+                            CM.Sound.play('collect');
+                        }
+                    }
+                });
+            }
+
+            var obj = activeWorld.getNearestObject(this.player.position,"collectable");
             if(obj == null) return;
+
+            // CRYSTAL: goes to score
+            if (obj.getTypeName() === 'CRYSTAL') {
+                if (this.player.isInRange(obj)) {
+                    var crystalScore = this.player.getScores().get('CRYSTAL');
+                    if (crystalScore) crystalScore.up(obj.getPointValue());
+                    activeWorld.removeObject(obj);
+                    CM.Sound.play('collect');
+                    this.notify('+' + obj.getPointValue() + ' Kristall', 60);
+                }
+                return;
+            }
+
+            // SKYMAP: one-time global unlock
+            if (obj.getTypeName() === 'SKYMAP') {
+                if (this.player.isInRange(obj)) {
+                    CM.skyMapFound = true;
+                    activeWorld.removeObject(obj);
+                    CM.Sound.play('collect');
+                    this.notify('Himmelskarte gefunden! Floating Islands erscheinen...', 240);
+                }
+                return;
+            }
+
             if(obj.getTypeName() === 'FUEL' && !this.player.isMounted()) {
                 if(CM.distance(this.player.getMidPoint(), obj.getMidPoint()) < 10) {
                     this.inventory.addItem('FUEL');
-                    this.world.removeObject(obj);
+                    activeWorld.removeObject(obj);
                     CM.Sound.play('collect');
                 }
                 return;
@@ -309,17 +393,17 @@ CM.CloudEngine=    class CloudEngine{
                     var hp = this.player.getScores().get('HEALTH');
                     if(hp.getScore() >= hp.getMax()) {
                         this.inventory.addItem('HEALTH');
-                        this.world.removeObject(obj);
+                        activeWorld.removeObject(obj);
                         CM.Sound.play('collect');
                     } else {
                         var collected = this.player.collect(obj);
-                        if(collected) { this.world.removeObject(obj); CM.Sound.play('collect'); }
+                        if(collected) { activeWorld.removeObject(obj); CM.Sound.play('collect'); }
                     }
                 }
                 return;
             }
             var collected = this.player.collect(obj);
-            if(collected) { this.world.removeObject(obj); CM.Sound.play('collect'); }
+            if(collected) { activeWorld.removeObject(obj); CM.Sound.play('collect'); }
         }
         checkAutoHeal() {
             if(this.player.isMounted()) return;
@@ -569,6 +653,35 @@ CM.CloudEngine=    class CloudEngine{
             this.world.addObject(new CM.Vogelscheuche(this.player.position.clone()));
             this.notify('Vogelscheuche gebaut!');
         }
+        checkCaveTransition() {
+            if (this.player.isMounted()) return;
+            if (this.caveTransitionFrames > 0) { this.caveTransitionFrames--; return; }
+
+            if (!this.inCave) {
+                // Surface → Cave
+                var chunk = this.world.getChunk(this.player.position);
+                var tile = chunk && chunk.getTile(this.player.position);
+                if (tile && tile.info.isCaveEntrance && this.player.z >= CM.GroundLevel - 0.1) {
+                    this.inCave = true;
+                    this.player.z = CM.CaveLevel;
+                    this.caveTransitionFrames = 90;
+                    this.player.setFireBallCreator(CM.FireBallCreator(this.caveWorld, this.imagerepo));
+                    this.notify('Du betrittst eine Höhle...', 90);
+                }
+            } else {
+                // Cave → Surface
+                var caveChunk = this.caveWorld && this.caveWorld.getChunk(this.player.position);
+                var caveTile = caveChunk && caveChunk.getTile(this.player.position);
+                if (caveTile && caveTile.info.isCaveExit) {
+                    this.inCave = false;
+                    this.player.z = CM.GroundLevel;
+                    this.caveTransitionFrames = 90;
+                    this.player.setFireBallCreator(CM.FireBallCreator(this.world, this.imagerepo));
+                    this.notify('Du verlässt die Höhle.', 90);
+                }
+            }
+        }
+
         notify(text, frames) {
             this.notification = text;
             this.notificationFrames = frames || 120;
@@ -1347,7 +1460,17 @@ CM.CloudEngine=    class CloudEngine{
 
                 this.player = new CM.CloudPlayer(this.startPos,this.imagerepo.getImage("playerAni"),this.imagerepo.getImage("playerAniLeft"));
                 this.inputHandler._aimTarget = this.player;
+                // Cave world
+                this.caveWorld = new CM.World(
+                    this.world.sizeX, this.world.sizeY,
+                    CM.CAVE_TILECREATOR(this.imagerepo, 300, CM.caveEntrancePositions)
+                );
+                this.caveWorld.setChunksCachedCallback(CM.ADDENEMYMAKER_CAVE(this.caveWorld, this.imagerepo));
+                this.caveWorld.applyForTile(CM.CAVE_COLLECTABLEMAKER(this.caveWorld, this.imagerepo));
+                this.caveWorld.addHitable('player', this.player);
+
                 this.player.setTileInfoRetrieve(CM.TILEACCESS(this.world));
+                this.player.setCaveTileInfoRetriever(CM.TILEACCESS(this.caveWorld));
                 var _world = this.world;
                 this.player.setBridgeRetriever(function(pos) {
                     return _world.getObjects().some(function(obj) {
@@ -1360,6 +1483,7 @@ CM.CloudEngine=    class CloudEngine{
                 this.world.applyForTile(CM.COLLECTABLEMAKER(this.world, this.imagerepo));
                 this.world.applyForTile(CM.MINEABLEMAKER(this.world, this.imagerepo));
                 this.world.addObject( new CM.Collectable(this.startPos.clone().move(20,20),this.imagerepo.getImage("coin_10"),"COINS",10,0.2));
+                for (var _t = 0; _t < 4; _t++) this.inventory.addItem('TORCH');
                 var blimp = new CM.Blimp(this.startPos,this.imagerepo.getImage("blimp"));
                 this.world.addObject(blimp);
                 this.world.addObject(new CM.NPC(new CM.Point(60, 10)));

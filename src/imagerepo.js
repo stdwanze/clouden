@@ -14,6 +14,13 @@ CM.ImageRepo = class Repo{
 					this.register("img/tile_land_snow32.png", "tile_land_snow");
 					this.register("img/tile_island32.png", "tile_island");
 					this.register("img/tile_mountain32.png", "tile_mountain");
+					this.register("img/tile_cave_floor32.png", "tile_cave_floor");
+					this.register("img/tile_cave_rock32.png",  "tile_cave_rock");
+					this.register("img/tile_cave_entrance.png","tile_cave_entrance");
+					this.register("img/tile_cave_exit.png",    "tile_cave_exit");
+					this.register("img/crystal.png",           "crystal");
+					this.register("img/skymap.png",            "skymap");
+					this.register("img/chest.png",             "chest");
 					this.register("img/water_border_top.png", "border_land_water_top");
 					this.register("img/water_border_down.png", "border_land_water_down");
 					this.register("img/water_border_left.png", "border_land_water_left");
