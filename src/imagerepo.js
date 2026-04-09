@@ -39,6 +39,9 @@ CM.ImageRepo = class Repo{
 				this.register("img/item_stone.png", "item_stone");
 				this.register("img/reed_inventory.png", "item_reed");
 				this.register("img/torch.png", "item_torch");
+					this.register("img/item_lamp.png", "item_lamp");
+				this.register("img/shrine.png",     "shrine");
+				this.register("img/dragon_egg.png", "dragon_egg");
 				this.register("img/fuel-10.png", "item_fuel");
 				this.register("img/health-10.png", "item_health");
 				this.register("img/berry_red_inventory.png", "item_berry_red");

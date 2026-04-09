@@ -253,3 +253,128 @@ describe('CM.Blimp', () => {
     expect(b.move(5, 0)).toBe(false);
   });
 });
+
+// ── CM.IslandChest ────────────────────────────────────────────────────────────
+
+describe('CM.IslandChest', () => {
+  const makeChest = () => new CM.IslandChest(new CM.Point(10, 20), img());
+  const makeRepo  = () => ({ getImage: jest.fn(() => img()) });
+
+  test('z is CM.FloatLevel', () => {
+    expect(makeChest().z).toBe(CM.FloatLevel);
+  });
+
+  test('isChest is true', () => {
+    expect(makeChest().isChest).toBe(true);
+  });
+
+  test('opened is false initially', () => {
+    expect(makeChest().opened).toBe(false);
+  });
+
+  test('open() returns a Collectable on first call', () => {
+    const c = makeChest().open(null, makeRepo());
+    expect(c).not.toBeNull();
+    expect(c.collectable).toBe(true);
+  });
+
+  test('open() returns null on second call (already opened)', () => {
+    const ch = makeChest();
+    ch.open(null, makeRepo());
+    expect(ch.open(null, makeRepo())).toBeNull();
+  });
+
+  test('open() sets opened = true', () => {
+    const ch = makeChest();
+    ch.open(null, makeRepo());
+    expect(ch.opened).toBe(true);
+  });
+});
+
+// ── CM.Shrine ─────────────────────────────────────────────────────────────────
+
+describe('CM.Shrine', () => {
+  const makeShrine = () => new CM.Shrine(new CM.Point(0, 0), img());
+
+  test('z is CM.FloatLevel', () => {
+    expect(makeShrine().z).toBe(CM.FloatLevel);
+  });
+
+  test('isShrine is true', () => {
+    expect(makeShrine().isShrine).toBe(true);
+  });
+
+  test('used is false initially', () => {
+    expect(makeShrine().used).toBe(false);
+  });
+
+  test('buffType is null initially', () => {
+    expect(makeShrine().buffType).toBeNull();
+  });
+});
+
+// ── CM.DragonEgg ──────────────────────────────────────────────────────────────
+
+describe('CM.DragonEgg', () => {
+  const makeEgg = () => new CM.DragonEgg(new CM.Point(0, 0), img());
+
+  test('z is CM.FloatLevel', () => {
+    expect(makeEgg().z).toBe(CM.FloatLevel);
+  });
+
+  test('isEgg is true', () => {
+    expect(makeEgg().isEgg).toBe(true);
+  });
+
+  test('mineable is true', () => {
+    expect(makeEgg().mineable).toBe(true);
+  });
+
+  test('resourceType is EGG', () => {
+    expect(makeEgg().resourceType).toBe('EGG');
+  });
+
+  test('hitsRequired is 3', () => {
+    expect(makeEgg().hitsRequired).toBe(3);
+  });
+
+  test('mine() increments hitsReceived', () => {
+    const e = makeEgg();
+    e.mine();
+    expect(e.hitsReceived).toBe(1);
+  });
+
+  test('mine() returns false before hitsRequired reached', () => {
+    const e = makeEgg();
+    expect(e.mine()).toBe(false);
+    expect(e.mine()).toBe(false);
+  });
+
+  test('mine() returns true and calls remove when hitsRequired reached', () => {
+    const e = makeEgg();
+    const remove = jest.fn();
+    e.setRemover(remove);
+    e.mine(); e.mine(); const result = e.mine(); // 3rd hit
+    expect(result).toBe(true);
+    expect(remove).toHaveBeenCalledWith(e);
+  });
+
+  test('mine() sets hitFlash to 8', () => {
+    const e = makeEgg();
+    e.mine();
+    expect(e.hitFlash).toBe(8);
+  });
+
+  test('tick() decrements hitFlash', () => {
+    const e = makeEgg();
+    e.mine(); // hitFlash = 8
+    e.tick();
+    expect(e.hitFlash).toBe(7);
+  });
+
+  test('tick() does not go below 0', () => {
+    const e = makeEgg();
+    for (let i = 0; i < 20; i++) e.tick();
+    expect(e.hitFlash).toBe(0);
+  });
+});

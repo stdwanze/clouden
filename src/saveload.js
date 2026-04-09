@@ -37,6 +37,7 @@ CM.SaveLoad = (function() {
         var scores = {};
         player.getScores().getAll().forEach(function(s) {
             scores[s.getName()] = s.getScore();
+            scores[s.getName() + '_max'] = s.getMax();
         });
 
         var mineables = [];
@@ -79,6 +80,13 @@ CM.SaveLoad = (function() {
             }
         });
 
+        var shrines = [];
+        engine.world.getObjects().forEach(function(obj) {
+            if (obj.isShrine) {
+                shrines.push({ x: obj.position.x, y: obj.position.y, used: obj.used, buffType: obj.buffType });
+            }
+        });
+
         var caveCollectables = [];
         if (engine.caveWorld) {
             engine.caveWorld.getObjects().forEach(function(obj) {
@@ -107,6 +115,7 @@ CM.SaveLoad = (function() {
             blockhuts:        blockhuts,
             vogelscheuchen:   vogelscheuchen,
             npcs:             npcs,
+            shrines: shrines,
             cave: {
                 skyMapFound:   !!CM.skyMapFound,
                 skyMapSpawned: !!CM.skyMapSpawned,
@@ -138,6 +147,7 @@ CM.SaveLoad = (function() {
 
         var savedScores = state.player.scores;
         player.getScores().getAll().forEach(function(s) {
+            if (savedScores[s.getName() + '_max'] !== undefined) s.max = savedScores[s.getName() + '_max'];
             if (savedScores[s.getName()] !== undefined) s.score = savedScores[s.getName()];
         });
 
@@ -228,6 +238,20 @@ CM.SaveLoad = (function() {
                 npcObjects[i].questAccepted = !!n.questAccepted;
             }
         });
+
+        // --- Shrines ---
+        if (state.shrines) {
+            var shrineObjects = engine.world.getObjects().filter(function(o) { return o.isShrine; });
+            state.shrines.forEach(function(s) {
+                var match = shrineObjects.find(function(o) {
+                    return Math.abs(o.position.x - s.x) < 5 && Math.abs(o.position.y - s.y) < 5;
+                });
+                if (match) {
+                    match.used = !!s.used;
+                    match.buffType = s.buffType;
+                }
+            });
+        }
 
         return true;
     }

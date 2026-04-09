@@ -36,6 +36,10 @@ CM.FloatingIsland = class FloatingIsland {
         this.worldW          = this.cols * this.TILE;
         this.worldH          = this.rows * this.TILE;
         this.tileImage       = tileImage || null;
+
+        var BIOME_TYPES = ['FOREST', 'RUINS', 'SHRINE', 'NEST'];
+        this.biomeType  = BIOME_TYPES[Math.floor(CM.rng() * BIOME_TYPES.length)];
+        this.biomeReady = false;
     }
 
     /**
@@ -164,11 +168,16 @@ CM.FloatingIsland = class FloatingIsland {
         if (this.tileImage) {
             ctx.drawImage(this.tileImage, sx, sy, tSize, tSizeY);
         } else {
-            // fallback: programmatic green fill
-            ctx.fillStyle = '#4e8c2c';
+            var biomeShades = {
+                FOREST: ['#3a7a2a', '#2e6020', '#4a8a3a', '#3a7a2a', '#2e6020', '#4a8a3a'],
+                RUINS:  ['#7a7060', '#5a5040', '#8a8070', '#7a7060', '#5a5040', '#8a8070'],
+                SHRINE: ['#4a6a9a', '#3a5a8a', '#5a7aaa', '#4a6a9a', '#3a5a8a', '#5a7aaa'],
+                NEST:   ['#7a5a30', '#6a4a20', '#8a6a40', '#7a5a30', '#6a4a20', '#8a6a40'],
+            };
+            var shades = (biomeShades[this.biomeType]) || ['#3a6818', '#4e8c2c', '#5ea034', '#70b840', '#3e7420', '#62aa38'];
+            ctx.fillStyle = shades[0];
             ctx.fillRect(sx, sy, tSize, tSizeY);
             var BUMPS  = 8;
-            var shades = ['#3a6818', '#4e8c2c', '#5ea034', '#70b840', '#3e7420', '#62aa38'];
             var bw = tSize  / BUMPS;
             var bh = tSizeY / BUMPS;
             for (var bi = 0; bi < BUMPS; bi++) {
@@ -193,6 +202,101 @@ CM.FloatingIsland = class FloatingIsland {
             ctx.fillRect(sx, sy + tSizeY, tSize, cliffH);
             ctx.fillStyle = '#523a18';
             ctx.fillRect(sx, sy + tSizeY + Math.round(cliffH * 0.65), tSize, Math.round(cliffH * 0.35));
+        }
+    }
+
+    populate(world, imagerepo) {
+        if (this.biomeReady) return;
+        this.biomeReady = true;
+        var self = this;
+        var T = this.TILE;
+
+        var positions = [];
+        for (var row = 0; row < this.rows; row++) {
+            for (var col = 0; col < this.cols; col++) {
+                if (!this.tiles[row][col]) continue;
+                positions.push(new CM.Point(
+                    this.position.x + col * T + T / 2,
+                    this.position.y + row * T + T / 2
+                ));
+            }
+        }
+        if (positions.length === 0) return;
+
+        function pick() {
+            return positions[Math.floor(CM.rng() * positions.length)];
+        }
+
+        switch (this.biomeType) {
+            case 'FOREST': self._populateForest(world, imagerepo, pick); break;
+            case 'RUINS':  self._populateRuins(world, imagerepo, pick);  break;
+            case 'SHRINE': self._populateShrine(world, imagerepo, pick); break;
+            case 'NEST':   self._populateNest(world, imagerepo, pick);   break;
+        }
+    }
+
+    _populateForest(world, imagerepo, pick) {
+        var woodCount = 3 + Math.floor(CM.rng() * 3);
+        for (var i = 0; i < woodCount; i++) {
+            var m = new CM.Mineable(pick(), 'WOOD', imagerepo.getImage('mineable_tree'));
+            m.z = CM.FloatLevel;
+            m.setRemover(world.removeObject.bind(world));
+            world.addObject(m);
+        }
+        var berryCount = 2 + Math.floor(CM.rng() * 2);
+        for (var j = 0; j < berryCount; j++) {
+            var type = CM.rng() < 0.5 ? 'BERRY_RED' : 'BERRY_BLUE';
+            var b = new CM.BerryBush(pick(), type);
+            b.z = CM.FloatLevel;
+            b.setRemover(world.removeObject.bind(world));
+            world.addObject(b);
+        }
+    }
+
+    _populateRuins(world, imagerepo, pick) {
+        var self = this;
+        var chest = new CM.IslandChest(pick(), imagerepo.getImage('chest'));
+        chest.setRemover(world.removeObject.bind(world));
+        world.addObject(chest);
+
+        var dragonPos = pick();
+        var dragon = new CM.IslandDragon(dragonPos, imagerepo.getImage('dragon_small'), self);
+        dragon.setFireBallCreator(CM.FireBallCreator(world, imagerepo));
+        dragon.setRemover(world.removeObject.bind(world));
+        var _w = world;
+        dragon.setScarecrowGetter(function() {
+            return _w.getObjects().filter(function(o) { return o.isScarecrow; });
+        });
+        world.addObject(dragon);
+        world.addHitable('island_dragon_ruins_' + dragonPos.x, dragon);
+    }
+
+    _populateShrine(world, imagerepo, pick) {
+        var shrine = new CM.Shrine(pick(), imagerepo.getImage('shrine'));
+        var buffTypes = ['MAX_HEALTH', 'MAX_AMMO', 'BOW_LEVEL'];
+        shrine.buffType = buffTypes[Math.floor(CM.rng() * buffTypes.length)];
+        shrine.setRemover(world.removeObject.bind(world));
+        world.addObject(shrine);
+    }
+
+    _populateNest(world, imagerepo, pick) {
+        var self = this;
+        var egg = new CM.DragonEgg(pick(), imagerepo.getImage('dragon_egg'));
+        egg.setRemover(world.removeObject.bind(world));
+        world.addObject(egg);
+        world.addHitable('dragon_egg_' + egg.position.x, egg);
+
+        var guardCount = 1 + Math.floor(CM.rng() * 2);
+        for (var i = 0; i < guardCount; i++) {
+            var dragon = new CM.IslandDragon(pick(), imagerepo.getImage('dragon_small'), self);
+            dragon.setFireBallCreator(CM.FireBallCreator(world, imagerepo));
+            dragon.setRemover(world.removeObject.bind(world));
+            var _w = world;
+            dragon.setScarecrowGetter(function() {
+                return _w.getObjects().filter(function(o) { return o.isScarecrow; });
+            });
+            world.addObject(dragon);
+            world.addHitable('island_dragon_nest_' + i + '_' + dragon.position.x, dragon);
         }
     }
 };

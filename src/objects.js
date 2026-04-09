@@ -205,6 +205,15 @@ CM.Collectable = class Collectable extends CM.Sprite
     }
    
 }
+CM.PlacedLamp = class PlacedLamp extends CM.Sprite {
+    constructor(location, image) {
+        super(image, location, CM.CaveLevel, false, 0.8);
+        this.isLamp = true;
+        this.lightInnerR = 300;
+        this.lightOuterR = 520;
+    }
+}
+
 CM.Chest = class Chest extends CM.Sprite {
     constructor(location, image) {
         super(image, location, CM.CaveLevel, false, 0.8);
@@ -213,7 +222,7 @@ CM.Chest = class Chest extends CM.Sprite {
         this.opened = false;
     }
 
-    open(caveWorld, imagerepo) {
+    open(_caveWorld, imagerepo) {
         if (this.opened) return null;
         this.opened = true;
         var lootPool = [
@@ -238,6 +247,72 @@ CM.Chest = class Chest extends CM.Sprite {
             ctx.globalAlpha = 0.5;
             super.draw(renderer);
             ctx.restore();
+        }
+    }
+}
+
+CM.IslandChest = class IslandChest extends CM.Chest {
+    constructor(location, image) {
+        super(location, image);
+        this.z = CM.FloatLevel;
+    }
+    open(_world, imagerepo) {
+        if (this.opened) return null;
+        this.opened = true;
+        var lootPool = [
+            { img: 'coin_10',   type: 'COINS',  val: 30 },
+            { img: 'coin_10',   type: 'COINS',  val: 50 },
+            { img: 'ammo_10',   type: 'AMMO',   val: 10 },
+            { img: 'health_10', type: 'HEALTH', val: 5  },
+        ];
+        var item = lootPool[Math.floor(CM.rng() * lootPool.length)];
+        return new CM.Collectable(
+            this.position.clone().move(5, 5),
+            imagerepo.getImage(item.img), item.type, item.val, 0.4
+        );
+    }
+}
+
+CM.Shrine = class Shrine extends CM.Sprite {
+    constructor(location, image) {
+        super(image, location, CM.FloatLevel, false, 0.7);
+        this.interactable = false;
+        this.isShrine = true;
+        this.used = false;
+        this.buffType = null;
+    }
+}
+
+CM.DragonEgg = class DragonEgg extends CM.Sprite {
+    constructor(location, image) {
+        super(image, location, CM.FloatLevel, false, 0.6);
+        this.isEgg = true;
+        this.mineable = true;
+        this.hitsRequired = 3;
+        this.hitsReceived = 0;
+        this.hitFlash = 0;
+        this.resourceType = 'EGG';
+        this.classType = 'DragonEgg';
+    }
+    mine() {
+        this.hitsReceived++;
+        this.hitFlash = 8;
+        if (this.hitsReceived >= this.hitsRequired) {
+            if (this.remove) this.remove(this);
+            return true;
+        }
+        return false;
+    }
+    tick() { if (this.hitFlash > 0) this.hitFlash--; }
+    draw(renderer) {
+        if (this.hitFlash > 0) {
+            var ctx = renderer.ctxt;
+            ctx.save();
+            ctx.filter = 'brightness(2)';
+            super.draw(renderer);
+            ctx.restore();
+        } else {
+            super.draw(renderer);
         }
     }
 }

@@ -151,31 +151,46 @@ CM.Renderer = class Renderer {
         this.ctxt.fillText(text,x,y);
     }
 
-    drawCaveDarkness(playerScreenX, playerScreenY, torchActive) {
+    drawCaveDarkness(playerScreenX, playerScreenY, torchActive, lamps) {
         var ctx = this.ctxt;
         var w = this.canvas.width;
         var h = this.canvas.height;
         var innerR = torchActive ? 150 : 80;
         var outerR = torchActive ? 260 : 130;
 
-        // Radial gradient: transparent at player, dark at outerR
-        var grad = ctx.createRadialGradient(
+        // Build darkness mask on an offscreen canvas so lamp lights can punch holes
+        var off = document.createElement('canvas');
+        off.width = w; off.height = h;
+        var oc = off.getContext('2d');
+
+        // Fill fully dark
+        oc.fillStyle = 'rgba(0,0,0,0.97)';
+        oc.fillRect(0, 0, w, h);
+
+        // Punch out player light (destination-out erases pixels)
+        oc.globalCompositeOperation = 'destination-out';
+        var playerGrad = oc.createRadialGradient(
             playerScreenX, playerScreenY, innerR,
             playerScreenX, playerScreenY, outerR
         );
-        grad.addColorStop(0, 'rgba(0,0,0,0)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.97)');
+        playerGrad.addColorStop(0, 'rgba(0,0,0,1)');
+        playerGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        oc.fillStyle = playerGrad;
+        oc.fillRect(0, 0, w, h);
 
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
+        // Punch out lamp lights
+        (lamps || []).forEach(function(lamp) {
+            var lampGrad = oc.createRadialGradient(
+                lamp.x, lamp.y, lamp.innerR,
+                lamp.x, lamp.y, lamp.outerR
+            );
+            lampGrad.addColorStop(0, 'rgba(0,0,0,1)');
+            lampGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            oc.fillStyle = lampGrad;
+            oc.fillRect(0, 0, w, h);
+        });
 
-        // Fill corners fully (beyond outerR radius)
-        ctx.fillStyle = 'rgba(0,0,0,0.97)';
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(playerScreenX, playerScreenY, outerR, 0, Math.PI * 2);
-        ctx.rect(w, 0, -w, h); // full rect minus the circle
-        ctx.fill('evenodd');
-        ctx.restore();
+        // Draw the mask onto the main canvas
+        ctx.drawImage(off, 0, 0);
     }
 }

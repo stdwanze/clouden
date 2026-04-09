@@ -159,3 +159,64 @@ describe('CM.Dragon', () => {
     expect(d.cooldown).toBe(120);
   });
 });
+
+// ── CM.IslandDragon ───────────────────────────────────────────────────────────
+
+describe('CM.IslandDragon', () => {
+  function makeIsland(cx = 0, cy = 0) {
+    // minimal stub with getMidPoint
+    return { getMidPoint: () => new CM.Point(cx, cy) };
+  }
+
+  function makeIslandDragon(px = 0, py = 0, island = makeIsland()) {
+    return new CM.IslandDragon(new CM.Point(px, py), img(), island);
+  }
+
+  beforeEach(() => {
+    CM.Sound.updateSpatialLoop = () => null;
+    CM.Sound.playAt = jest.fn();
+  });
+
+  test('z is CM.FloatLevel', () => {
+    expect(makeIslandDragon().z).toBe(CM.FloatLevel);
+  });
+
+  test('stores homeIsland reference', () => {
+    const island = makeIsland(100, 200);
+    const d = makeIslandDragon(0, 0, island);
+    expect(d.homeIsland).toBe(island);
+  });
+
+  test('PATROL_RADIUS is 180', () => {
+    expect(makeIslandDragon().PATROL_RADIUS).toBe(180);
+  });
+
+  test('inherits hit() from CM.Dragon — reduces health', () => {
+    const d = makeIslandDragon();
+    d.hit(5);
+    expect(d.scores.get('HEALTH').getScore()).toBe(15);
+  });
+
+  test('tick() does nothing when player is null', () => {
+    expect(() => makeIslandDragon().tick(null)).not.toThrow();
+  });
+
+  test('tick() moves back toward island when distance exceeds PATROL_RADIUS', () => {
+    // Island is at (0,0), dragon spawns far away
+    const island = makeIsland(0, 0);
+    const d = makeIslandDragon(0, 0, island);
+    d.position.x = 999; // manually place dragon far
+    const xBefore = d.position.x;
+    d.tick(null);
+    // should have moved toward 0,0 (x decreased)
+    expect(d.position.x).toBeLessThan(xBefore);
+  });
+
+  test('tick() delegates to Dragon.tick when within PATROL_RADIUS', () => {
+    const island = makeIsland(0, 0);
+    const d = makeIslandDragon(50, 0, island); // well within 180
+    const p = makePlayer(60, 0, CM.FloatLevel);
+    // should not throw and should call super.tick
+    expect(() => d.tick(p)).not.toThrow();
+  });
+});

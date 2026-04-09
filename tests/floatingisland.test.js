@@ -229,3 +229,142 @@ describe('CM.FloatLevel', () => {
         expect(CM.FloatLevel).toBeLessThan(CM.GroundLevel);
     });
 });
+
+// ── biomeType ─────────────────────────────────────────────────────────────────
+
+describe('CM.FloatingIsland biomeType', () => {
+    const VALID_BIOMES = ['FOREST', 'RUINS', 'SHRINE', 'NEST'];
+
+    test('biomeType is one of the four valid values', () => {
+        const island = new CM.FloatingIsland(new CM.Point(0, 0));
+        expect(VALID_BIOMES).toContain(island.biomeType);
+    });
+
+    test('biomeReady starts as false', () => {
+        const island = new CM.FloatingIsland(new CM.Point(0, 0));
+        expect(island.biomeReady).toBe(false);
+    });
+
+    test('different islands can have different biomes', () => {
+        const biomes = new Set();
+        for (let i = 0; i < 20; i++) {
+            biomes.add(new CM.FloatingIsland(new CM.Point(0, 0)).biomeType);
+        }
+        expect(biomes.size).toBeGreaterThan(1);
+    });
+});
+
+// ── populate() ────────────────────────────────────────────────────────────────
+
+describe('CM.FloatingIsland populate()', () => {
+    const img = () => ({ width: 32, height: 32, src: '' });
+
+    function makeWorld() {
+        return {
+            objects: [],
+            hitables: {},
+            addObject:    jest.fn(),
+            removeObject: jest.fn(),
+            getObjects:   jest.fn(() => []),
+            addHitable:   jest.fn(),
+        };
+    }
+
+    function makeRepo() {
+        return { getImage: jest.fn(() => img()) };
+    }
+
+    function makeIsland(biomeType, shape = [[1,1,1],[1,1,1],[1,1,1]]) {
+        const island = new CM.FloatingIsland(new CM.Point(0, 0), shape);
+        island.biomeType = biomeType;
+        return island;
+    }
+
+    beforeEach(() => {
+        CM.Sound.updateSpatialLoop = () => null;
+        CM.Sound.playAt = jest.fn();
+    });
+
+    test('populate() sets biomeReady to true', () => {
+        const island = makeIsland('SHRINE');
+        island.populate(makeWorld(), makeRepo());
+        expect(island.biomeReady).toBe(true);
+    });
+
+    test('populate() does not run twice (biomeReady guard)', () => {
+        const island = makeIsland('SHRINE');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const callsAfterFirst = world.addObject.mock.calls.length;
+        island.populate(world, makeRepo()); // second call should be a no-op
+        expect(world.addObject.mock.calls.length).toBe(callsAfterFirst);
+    });
+
+    test('SHRINE biome adds exactly one shrine object', () => {
+        const island = makeIsland('SHRINE');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const shrines = world.addObject.mock.calls.filter(c => c[0].isShrine);
+        expect(shrines).toHaveLength(1);
+    });
+
+    test('SHRINE assigns a valid buffType', () => {
+        const island = makeIsland('SHRINE');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const shrine = world.addObject.mock.calls.find(c => c[0].isShrine)[0];
+        expect(['MAX_HEALTH', 'MAX_AMMO', 'BOW_LEVEL']).toContain(shrine.buffType);
+    });
+
+    test('RUINS biome adds a chest (isChest) and a dragon', () => {
+        const island = makeIsland('RUINS');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const chests  = world.addObject.mock.calls.filter(c => c[0].isChest);
+        const dragons = world.addObject.mock.calls.filter(c => c[0] instanceof CM.IslandDragon);
+        expect(chests).toHaveLength(1);
+        expect(dragons).toHaveLength(1);
+    });
+
+    test('NEST biome adds a dragon egg (isEgg)', () => {
+        const island = makeIsland('NEST');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const eggs = world.addObject.mock.calls.filter(c => c[0].isEgg);
+        expect(eggs).toHaveLength(1);
+    });
+
+    test('NEST biome adds 1 or 2 island dragons', () => {
+        const island = makeIsland('NEST');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const dragons = world.addObject.mock.calls.filter(c => c[0] instanceof CM.IslandDragon);
+        expect(dragons.length).toBeGreaterThanOrEqual(1);
+        expect(dragons.length).toBeLessThanOrEqual(2);
+    });
+
+    test('FOREST biome adds mineables (wood)', () => {
+        const island = makeIsland('FOREST');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const mineables = world.addObject.mock.calls.filter(c => c[0].mineable && c[0].resourceType === 'WOOD');
+        expect(mineables.length).toBeGreaterThanOrEqual(3);
+        expect(mineables.length).toBeLessThanOrEqual(5);
+    });
+
+    test('FOREST biome adds berry bushes', () => {
+        const island = makeIsland('FOREST');
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        const berries = world.addObject.mock.calls.filter(c => c[0].classType === 'BerryBush');
+        expect(berries.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test('populate() does nothing when no tiles are solid', () => {
+        const island = new CM.FloatingIsland(new CM.Point(0, 0), [[0,0],[0,0]]);
+        island.biomeType = 'SHRINE';
+        const world = makeWorld();
+        island.populate(world, makeRepo());
+        expect(world.addObject).not.toHaveBeenCalled();
+    });
+});

@@ -212,7 +212,15 @@ CM.CloudEngine=    class CloudEngine{
                     if (this.inCave) {
                         var _cw = this.renderer.getScreenWidth() / 2;
                         var _ch = this.renderer.getScreenHeight() / 2;
-                        this.renderer.drawCaveDarkness(_cw, _ch, this.torchActive);
+                        // Collect lamp screen positions
+                        var _lampPositions = [];
+                        this.caveWorld.getObjects().forEach(function(obj) {
+                            if (!obj.isLamp) return;
+                            var _lsx = this.renderer.translateAndZoom(obj.getMidPoint().x - this.renderer.viewport.x, _cw);
+                            var _lsy = this.renderer.translateAndZoom(obj.getMidPoint().y - this.renderer.viewport.y, _ch);
+                            _lampPositions.push({ x: _lsx, y: _lsy, innerR: obj.lightInnerR, outerR: obj.lightOuterR });
+                        }.bind(this));
+                        this.renderer.drawCaveDarkness(_cw, _ch, this.torchActive, _lampPositions);
                     }
 
                     // hit flash overlay
@@ -328,7 +336,20 @@ CM.CloudEngine=    class CloudEngine{
 
         }
         tryMine(){
-            var obj = this.world.getNearestObject(this.player.position, "mineable");
+            // In der Höhle: Lampen können abgebaut werden
+            if (this.inCave) {
+                var lamps = this.caveWorld.getObjects().filter(function(o) { return o.isLamp; });
+                for (var i = 0; i < lamps.length; i++) {
+                    if (CM.distance(this.player.getMidPoint(), lamps[i].getMidPoint()) <= 40) {
+                        this.caveWorld.removeObject(lamps[i]);
+                        this.inventory.addItem('LAMP');
+                        this.notify('Lampe aufgenommen.', 90);
+                        return;
+                    }
+                }
+            }
+            var activeWorld = this.inCave ? this.caveWorld : this.world;
+            var obj = activeWorld.getNearestObject(this.player.position, "mineable");
             if (!obj) return;
             if (CM.distance(this.player.getMidPoint(), obj.getMidPoint()) > 30) return;
             var type = obj.resourceType;
@@ -347,7 +368,23 @@ CM.CloudEngine=    class CloudEngine{
                         var drop = obj.open(self.caveWorld, self.imagerepo);
                         if (drop) {
                             self.caveWorld.addObject(drop);
-                            self.notify('Truhe geöffnet!', 90);
+                            self.notify('Truhe ge\u00f6ffnet!', 90);
+                            CM.Sound.play('collect');
+                        }
+                    }
+                });
+            }
+
+            // Chest interaction on floating islands
+            if (!this.inCave && Math.abs(this.player.z - CM.FloatLevel) <= 0.25) {
+                this.world.getObjects().forEach(function(obj) {
+                    if (obj.isChest && !obj.opened &&
+                        CM.distance(self.player.position, obj.position) < 30) {
+                        var drop = obj.open(null, self.imagerepo);
+                        if (drop) {
+                            drop.z = CM.FloatLevel;
+                            self.world.addObject(drop);
+                            self.notify('Truhe ge\u00f6ffnet!', 90);
                             CM.Sound.play('collect');
                         }
                     }
@@ -511,6 +548,7 @@ CM.CloudEngine=    class CloudEngine{
                         this.notify(v.sailMode ? 'Segel gesetzt!' : 'Segel eingeholt!', 90);
                     } else {
                         this.tryNPCInteract();
+                        this.tryIslandInteract();
                     }
                     break;
                 case "66" : {
@@ -750,6 +788,35 @@ CM.CloudEngine=    class CloudEngine{
             this.inventory.addItem('TORCH');
             this.notify('Fackel hergestellt!', 120);
         }
+        tryCraftLamp() {
+            if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
+            var slots = this.inventory.slots;
+            var wi  = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
+            var si  = slots.findIndex(function(s) { return s && s.type === 'STONE'; });
+            var ci  = slots.findIndex(function(s) { return s && s.type === 'CRYSTAL'; });
+            var bi  = slots.findIndex(function(s) { return s && s.type === 'BERRY_RED'; });
+            var woodHave    = wi >= 0 ? slots[wi].count : 0;
+            var stoneHave   = si >= 0 ? slots[si].count : 0;
+            var crystalHave = ci >= 0 ? slots[ci].count : 0;
+            var berryHave   = bi >= 0 ? slots[bi].count : 0;
+            if (woodHave < 1 || stoneHave < 1 || crystalHave < 4 || berryHave < 1) {
+                var missing = [];
+                if (woodHave    < 1) missing.push('1 Holz');
+                if (stoneHave   < 1) missing.push('1 Stein');
+                if (crystalHave < 4) missing.push('4 Kristalle (vorhanden: ' + crystalHave + ')');
+                if (berryHave   < 1) missing.push('1 Rote Beere');
+                this.notify('Ben\u00f6tigt: ' + missing.join(' + '), 180);
+                return;
+            }
+            slots[wi].count -= 1; if (slots[wi].count === 0) slots[wi] = null;
+            slots[si].count -= 1; if (slots[si].count === 0) slots[si] = null;
+            var ci2 = slots.findIndex(function(s) { return s && s.type === 'CRYSTAL'; });
+            slots[ci2].count -= 4; if (slots[ci2].count === 0) slots[ci2] = null;
+            var bi2 = slots.findIndex(function(s) { return s && s.type === 'BERRY_RED'; });
+            slots[bi2].count -= 1; if (slots[bi2].count === 0) slots[bi2] = null;
+            this.inventory.addItem('LAMP');
+            this.notify('Lampe hergestellt!', 120);
+        }
         tryUseSelectedInventory() {
             if (!this.inventory.isOpen()) return;
             var item = this.inventory.getSelectedItem();
@@ -766,6 +833,20 @@ CM.CloudEngine=    class CloudEngine{
                 this.torchActive = true;
                 this.torchTimer = 60 * 60; // 1 Minute bei 60 FPS
                 this.notify('Fackel angezündet! (1 Minute)', 120);
+                return;
+            }
+            if (item.type === 'LAMP') {
+                if (!this.inCave) {
+                    this.notify('Lampe nur in H\u00f6hlen platzierbar.', 120);
+                    return;
+                }
+                this.inventory.removeSelectedItem();
+                var lamp = new CM.PlacedLamp(this.player.position.clone(), this.imagerepo.getImage('item_lamp'));
+                lamp.setRemover(this.caveWorld.removeObject.bind(this.caveWorld));
+                this.caveWorld.addObject(lamp);
+                this.inventory.toggle();
+                this.paused = false;
+                this.notify('Lampe platziert.', 90);
                 return;
             }
             this.notify('Dieses Item kann nicht benutzt werden: ' + item.type, 120);
@@ -837,6 +918,33 @@ CM.CloudEngine=    class CloudEngine{
             npc.questIndex++;
             npc.questAccepted = false;
             this.notify('Auftrag erf\u00fcllt! Belohnung: ' + quest.rewardText, 200);
+        }
+        tryIslandInteract() {
+            if (Math.abs(this.player.z - CM.FloatLevel) > 0.25) return;
+            var shrines = this.world.getObjects().filter(function(o) { return o.isShrine; });
+            for (var i = 0; i < shrines.length; i++) {
+                var obj = shrines[i];
+                if (CM.distance(this.player.position, obj.position) > 50) continue;
+                if (obj.used) { this.notify('Schrein bereits aktiviert.', 90); return; }
+                obj.used = true;
+                var player = this.player;
+                switch (obj.buffType) {
+                    case 'MAX_HEALTH':
+                        player.getScores().get('HEALTH').max += 3;
+                        this.notify('+3 max. Leben! (permanent)', 180);
+                        break;
+                    case 'MAX_AMMO':
+                        player.getScores().get('AMMO').max += 5;
+                        this.notify('+5 max. Pfeile! (permanent)', 180);
+                        break;
+                    case 'BOW_LEVEL':
+                        player.bowLevel = (player.bowLevel || 0) + 1;
+                        this.notify('Bogen gesegnet! +' + (4 + player.bowLevel) + ' Schaden', 180);
+                        break;
+                }
+                CM.SaveLoad.save(this);
+                return;
+            }
         }
         drawNPCOverlay(npc) {
             var quest = npc.getQuest();
@@ -1013,6 +1121,24 @@ CM.CloudEngine=    class CloudEngine{
                         ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy - 12, 4, 24); // handle
                         ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(cx, cy - 14, 8, 0, Math.PI * 2); ctx.fill();
                         ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(cx, cy - 16, 6, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Lampe herstellen',
+                    sub: '1 Holz + 1 Stein + 4 Kristalle + 1 Beere',
+                    action: function() { self.tryCraftLamp(); },
+                    drawPict: function(ctx, cx, cy) {
+                        // pole
+                        ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy, 4, 14);
+                        // foot
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(cx - 7, cy + 11, 14, 3);
+                        // body frame
+                        ctx.fillStyle = '#6a4010'; ctx.fillRect(cx - 8, cy - 14, 16, 15);
+                        // glow
+                        ctx.fillStyle = '#ffe866'; ctx.beginPath(); ctx.arc(cx, cy - 7, 5, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = 'rgba(255,220,80,0.4)'; ctx.beginPath(); ctx.arc(cx, cy - 7, 10, 0, Math.PI * 2); ctx.fill();
+                        // cap
+                        ctx.fillStyle = '#4a2a08'; ctx.fillRect(cx - 6, cy - 16, 12, 3);
                     }
                 }
             ];
@@ -1495,7 +1621,9 @@ CM.CloudEngine=    class CloudEngine{
                     new CM.Point( 450, 2600),
                     new CM.Point(2700, 2400),
                 ].forEach(pos => {
-                    this.world.addObject(new CM.FloatingIsland(pos, null, this.imagerepo.getImage('tile_island')));
+                    var island = new CM.FloatingIsland(pos, null, this.imagerepo.getImage('tile_island'));
+                    this.world.addObject(island);
+                    island.populate(this.world, this.imagerepo);
                 });
                 var _w2 = this.world;
                 var _islandGetter = function() {

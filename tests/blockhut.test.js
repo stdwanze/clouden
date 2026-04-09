@@ -77,7 +77,7 @@ describe('CM.SaveLoad — blockhut save/load', () => {
         const hut = makeHut(55, 77);
         CM.currentSeed = 1;
         CM.SaveLoad.save(makeEngine([hut]));
-        const state = JSON.parse(localStorage.getItem('clouden_save_v2'));
+        const state = JSON.parse(localStorage.getItem('clouden_save_v3'));
         expect(state.blockhuts).toHaveLength(1);
         expect(state.blockhuts[0]).toMatchObject({ x: 55, y: 77 });
     });
@@ -85,13 +85,13 @@ describe('CM.SaveLoad — blockhut save/load', () => {
     test('save records multiple blockhuts', () => {
         CM.currentSeed = 1;
         CM.SaveLoad.save(makeEngine([makeHut(10, 20), makeHut(30, 40)]));
-        const state = JSON.parse(localStorage.getItem('clouden_save_v2'));
+        const state = JSON.parse(localStorage.getItem('clouden_save_v3'));
         expect(state.blockhuts).toHaveLength(2);
     });
 
     test('load restores blockhut as CM.Blockhut with isSafePoint', () => {
-        localStorage.setItem('clouden_save_v2', JSON.stringify({
-            v: 2, seed: 1,
+        localStorage.setItem('clouden_save_v3', JSON.stringify({
+            v: 3, seed: 1,
             player: { x: 0, y: 0, z: CM.GroundLevel, scores: {} },
             inventory: new Array(16).fill(null),
             mineables: [], collectables: [], blimps: [],
@@ -106,8 +106,8 @@ describe('CM.SaveLoad — blockhut save/load', () => {
     });
 
     test('load with no blockhuts key does not throw', () => {
-        localStorage.setItem('clouden_save_v2', JSON.stringify({
-            v: 2, seed: 1,
+        localStorage.setItem('clouden_save_v3', JSON.stringify({
+            v: 3, seed: 1,
             player: { x: 0, y: 0, z: CM.GroundLevel, scores: {} },
             inventory: new Array(16).fill(null),
             mineables: [], collectables: [], blimps: [],
@@ -118,8 +118,8 @@ describe('CM.SaveLoad — blockhut save/load', () => {
     test('load strips existing blockhuts before restoring', () => {
         const existing = makeHut(0, 0);
         const engine = makeEngine([existing]);
-        localStorage.setItem('clouden_save_v2', JSON.stringify({
-            v: 2, seed: 1,
+        localStorage.setItem('clouden_save_v3', JSON.stringify({
+            v: 3, seed: 1,
             player: { x: 0, y: 0, z: CM.GroundLevel, scores: {} },
             inventory: new Array(16).fill(null),
             mineables: [], collectables: [], blimps: [], blockhuts: [],

@@ -248,6 +248,28 @@ CM.Dragon = class Dragon extends CM.VehicleSprite
     {
         super.draw(renderer);
         this.hitmanager.draw(this, renderer);
-      
+
+    }
+}
+
+CM.IslandDragon = class IslandDragon extends CM.Dragon {
+    constructor(location, image, island) {
+        super(location, image);
+        this.z = CM.FloatLevel;
+        this.homeIsland = island;
+        this.PATROL_RADIUS = 180;
+    }
+
+    tick(player) {
+        if (this.homeIsland) {
+            var home = this.homeIsland.getMidPoint();
+            var distFromHome = CM.distance(this.position, home);
+            if (distFromHome > this.PATROL_RADIUS) {
+                var back = CM.getVector(this.position, home, 1);
+                super.move(back.x * this.speed * 2, back.y * this.speed * 2);
+                return;
+            }
+        }
+        super.tick(player);
     }
 }
