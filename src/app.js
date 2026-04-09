@@ -791,14 +791,14 @@ CM.CloudEngine=    class CloudEngine{
         tryCraftLamp() {
             if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
             var slots = this.inventory.slots;
-            var wi  = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
-            var si  = slots.findIndex(function(s) { return s && s.type === 'STONE'; });
-            var ci  = slots.findIndex(function(s) { return s && s.type === 'CRYSTAL'; });
-            var bi  = slots.findIndex(function(s) { return s && s.type === 'BERRY_RED'; });
+            var wi = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
+            var si = slots.findIndex(function(s) { return s && s.type === 'STONE'; });
+            var bi = slots.findIndex(function(s) { return s && s.type === 'BERRY_RED'; });
             var woodHave    = wi >= 0 ? slots[wi].count : 0;
             var stoneHave   = si >= 0 ? slots[si].count : 0;
-            var crystalHave = ci >= 0 ? slots[ci].count : 0;
             var berryHave   = bi >= 0 ? slots[bi].count : 0;
+            var crystalScore = this.player.getScores().get('CRYSTAL');
+            var crystalHave  = crystalScore ? crystalScore.getScore() : 0;
             if (woodHave < 1 || stoneHave < 1 || crystalHave < 4 || berryHave < 1) {
                 var missing = [];
                 if (woodHave    < 1) missing.push('1 Holz');
@@ -810,12 +810,30 @@ CM.CloudEngine=    class CloudEngine{
             }
             slots[wi].count -= 1; if (slots[wi].count === 0) slots[wi] = null;
             slots[si].count -= 1; if (slots[si].count === 0) slots[si] = null;
-            var ci2 = slots.findIndex(function(s) { return s && s.type === 'CRYSTAL'; });
-            slots[ci2].count -= 4; if (slots[ci2].count === 0) slots[ci2] = null;
-            var bi2 = slots.findIndex(function(s) { return s && s.type === 'BERRY_RED'; });
-            slots[bi2].count -= 1; if (slots[bi2].count === 0) slots[bi2] = null;
+            slots[bi].count -= 1; if (slots[bi].count === 0) slots[bi] = null;
+            crystalScore.reduce(4);
             this.inventory.addItem('LAMP');
             this.notify('Lampe hergestellt!', 120);
+        }
+        tryCraftCompass() {
+            if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
+            var slots = this.inventory.slots;
+            var si = slots.findIndex(function(s) { return s && s.type === 'STONE'; });
+            var stoneHave   = si >= 0 ? slots[si].count : 0;
+            var crystalScore = this.player.getScores().get('CRYSTAL');
+            var crystalHave  = crystalScore ? crystalScore.getScore() : 0;
+            if (stoneHave < 1 || crystalHave < 3) {
+                var missing = [];
+                if (stoneHave   < 1) missing.push('1 Stein');
+                if (crystalHave < 3) missing.push('3 Kristalle (vorhanden: ' + crystalHave + ')');
+                this.notify('Ben\u00f6tigt: ' + missing.join(' + '), 180);
+                return;
+            }
+            slots[si].count -= 1; if (slots[si].count === 0) slots[si] = null;
+            crystalScore.reduce(3);
+            this.inventory.addItem('COMPASS');
+            CM.SaveLoad.save(this);
+            this.notify('Kompass hergestellt!', 120);
         }
         tryUseSelectedInventory() {
             if (!this.inventory.isOpen()) return;
@@ -898,9 +916,21 @@ CM.CloudEngine=    class CloudEngine{
             }
             if (!npc.questAccepted) {
                 npc.questAccepted = true;
-                this.notify('Auftrag angenommen: ' + quest.text, 180);
+                var alreadyMet = quest.check && this._checkQuestCondition(quest.check);
+                var suffix = alreadyMet ? ' (bereits erf\u00fcllt \u2014 nochmal F dr\u00fccken!)' : '';
+                this.notify('Auftrag angenommen: ' + quest.text + suffix, 200);
                 return;
             }
+            // check-Quest (kein Inventory-Verbrauch)
+            if (quest.check) {
+                if (!this._checkQuestCondition(quest.check)) {
+                    this.notify('Noch nicht erf\u00fcllt: ' + quest.text, 150);
+                    return;
+                }
+                this._applyQuestReward(quest, npc);
+                return;
+            }
+            // resource-Quest
             var slots = this.inventory.slots;
             var si = slots.findIndex(function(s) { return s && s.type === quest.resource; });
             var have = si >= 0 ? slots[si].count : 0;
@@ -908,16 +938,38 @@ CM.CloudEngine=    class CloudEngine{
                 this.notify(quest.resource + ': ' + have + '/' + quest.amount + ' \u2014 noch nicht fertig', 150);
                 return;
             }
-            // hand in
             slots[si].count -= quest.amount;
             if (slots[si].count === 0) slots[si] = null;
+            this._applyQuestReward(quest, npc);
+        }
+        _checkQuestCondition(check) {
+            if (check === 'CRAFTING_STATION') {
+                return this.world.getObjects().some(function(o) { return o.hasCraftingStation; });
+            }
+            if (check === 'SKYMAP') {
+                return CM.skyMapFound;
+            }
+            return false;
+        }
+        _applyQuestReward(quest, npc) {
             var r = quest.reward;
-            if (r.coins)  this.player.getScores().get('COINS').up(r.coins);
-            if (r.ammo)   this.player.getScores().get('AMMO').up(r.ammo);
-            if (r.health) this.player.getScores().get('HEALTH').up(r.health);
+            if (r.coins)        this.player.getScores().get('COINS').up(r.coins);
+            if (r.ammo)         this.player.getScores().get('AMMO').up(r.ammo);
+            if (r.health)       this.player.getScores().get('HEALTH').up(r.health);
+            if (r.blimpUpgrade) this._applyBlimpUpgrade(r.blimpUpgrade);
             npc.questIndex++;
             npc.questAccepted = false;
             this.notify('Auftrag erf\u00fcllt! Belohnung: ' + quest.rewardText, 200);
+            CM.SaveLoad.save(this);
+        }
+        _applyBlimpUpgrade(upgrade) {
+            if (upgrade.fuelMax) {
+                this.blimpFuelBonus = (this.blimpFuelBonus || 0) + upgrade.fuelMax;
+                var blimp = this.world.getObjects().find(function(o) {
+                    return o.scores && o.scores.get('FUEL');
+                });
+                if (blimp) blimp.scores.get('FUEL').max += upgrade.fuelMax;
+            }
         }
         tryIslandInteract() {
             if (Math.abs(this.player.z - CM.FloatLevel) > 0.25) return;
@@ -1121,6 +1173,23 @@ CM.CloudEngine=    class CloudEngine{
                         ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy - 12, 4, 24); // handle
                         ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(cx, cy - 14, 8, 0, Math.PI * 2); ctx.fill();
                         ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(cx, cy - 16, 6, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Kompass herstellen',
+                    sub: '1 Stein + 3 Kristalle',
+                    action: function() { self.tryCraftCompass(); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.stroke();
+                        ctx.strokeStyle = '#556688'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = '#cc2222';
+                        ctx.beginPath(); ctx.moveTo(cx, cy - 11); ctx.lineTo(cx - 3, cy); ctx.lineTo(cx + 3, cy); ctx.closePath(); ctx.fill();
+                        ctx.fillStyle = '#aaaaaa';
+                        ctx.beginPath(); ctx.moveTo(cx, cy + 11); ctx.lineTo(cx - 3, cy); ctx.lineTo(cx + 3, cy); ctx.closePath(); ctx.fill();
+                        ctx.fillStyle = '#ffe866';
+                        ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
                     }
                 },
                 {

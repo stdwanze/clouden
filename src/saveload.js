@@ -104,6 +104,7 @@ CM.SaveLoad = (function() {
         var state = {
             v: 3,
             seed: CM.currentSeed,
+            blimpFuelBonus: engine.blimpFuelBonus || 0,
             player: {
                 x: player.position.x, y: player.position.y,
                 z: player.z, scores: scores, bowLevel: player.bowLevel
@@ -238,6 +239,15 @@ CM.SaveLoad = (function() {
                 npcObjects[i].questAccepted = !!n.questAccepted;
             }
         });
+
+        // --- Blimp fuel bonus ---
+        engine.blimpFuelBonus = state.blimpFuelBonus || 0;
+        if (engine.blimpFuelBonus > 0) {
+            var bonusBlimp = engine.world.getObjects().find(function(o) {
+                return o.scores && o.scores.get('FUEL');
+            });
+            if (bonusBlimp) bonusBlimp.scores.get('FUEL').max += engine.blimpFuelBonus;
+        }
 
         // --- Shrines ---
         if (state.shrines) {

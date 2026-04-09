@@ -46,6 +46,7 @@ require('../src/berrybush');
 require('../src/blockhut');
 require('../src/player');
 require('../src/enemy');
+require('../src/npc');
 require('../src/algos');
 require('../src/world');
 require('../src/app');

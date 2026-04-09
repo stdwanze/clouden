@@ -7,11 +7,36 @@ CM.NPC = class NPC extends CM.MoveableObject {
         this.questIndex = 0;
         this.questAccepted = false;
         this.quests = [
-            { resource: 'WOOD',      amount: 15, text: 'Sammle mir 15 Holz!',            rewardText: '+50 M\u00fcnzen',              reward: { coins: 50 } },
-            { resource: 'STONE',     amount: 10, text: 'Bringe mir 10 Stein!',           rewardText: '+30 M\u00fcnzen + 5 Pfeile',   reward: { coins: 30, ammo: 5 } },
-            { resource: 'REED',      amount:  5, text: 'Bringe mir 5 Schilf!',           rewardText: '+5 Leben',                     reward: { health: 5 } },
-            { resource: 'BERRY_RED', amount:  3, text: 'Bringe mir 3 rote Beeren!',      rewardText: '+10 Pfeile',                   reward: { ammo: 10 } },
-            { resource: 'WOOD',      amount: 50, text: 'Ich brauche 50 Holz f\u00fcr den Bau!', rewardText: '+100 M\u00fcnzen',       reward: { coins: 100 } },
+            {
+                resource: 'WOOD', amount: 15,
+                text: 'Bringe mir 15 Holz!',
+                rewardText: '+50 M\u00fcnzen',
+                reward: { coins: 50 },
+            },
+            {
+                check: 'CRAFTING_STATION',
+                text: 'Baue eine Werkbank in deiner Blockh\u00fctte! (H \u2192 Ausbauen)',
+                rewardText: '+5 Leben + 10 Pfeile',
+                reward: { health: 5, ammo: 10 },
+            },
+            {
+                resource: 'COMPASS', amount: 1,
+                text: 'Craft einen Kompass an der Werkbank! (1 Stein + 3 Kristalle)',
+                rewardText: '+30 M\u00fcnzen',
+                reward: { coins: 30 },
+            },
+            {
+                check: 'SKYMAP',
+                text: 'Finde die Himmelskarte in einer H\u00f6hle!',
+                rewardText: '+50 M\u00fcnzen',
+                reward: { coins: 50 },
+            },
+            {
+                resource: 'EGG', amount: 1,
+                text: 'Bring mir einen Himmelsstein von einer Floating Island!',
+                rewardText: 'Blimp-Upgrade: +30 Fuel-Kapazit\u00e4t!',
+                reward: { blimpUpgrade: { fuelMax: 30 } },
+            },
         ];
     }
 
