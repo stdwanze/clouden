@@ -19,6 +19,20 @@ CM.StormManager = class StormManager {
     // 60 s – 120 s at 30 fps
     _randomStormDuration(){ return Math.floor(1800 + Math.random() * 1800);  }
 
+    // Randomise wind direction + strength for all layers after a storm.
+    // New magnitude: between 1× and 2× baseMag (= 2× to 4× original baseline).
+    _shiftWind() {
+        CM.WindLayers.forEach(function(layer) {
+            var angle = Math.random() * Math.PI * 2;
+            var mag   = layer.baseMag * (1 + Math.random()); // 1–2× baseMag
+            layer.wind.x = Math.cos(angle) * mag;
+            layer.wind.y = Math.sin(angle) * mag;
+        });
+        console.log('[Storm] Wind gedreht. Neu:', CM.WindLayers.map(function(l) {
+            return '(' + l.wind.x.toFixed(3) + ',' + l.wind.y.toFixed(3) + ')';
+        }).join(' | '));
+    }
+
     // Pre-bake a jagged bolt shape so it doesn't flicker per-frame
     _makeBolt() {
         var pts = [];
@@ -72,6 +86,7 @@ CM.StormManager = class StormManager {
                 this.idleFrames    = this._randomIdleFrames();
                 this.activeStrikes = [];
                 this.flashFrames   = 0;
+                this._shiftWind();
                 console.log('[Storm] Sturm vorbei. Nächster Sturm in ~' + Math.round((this.idleFrames + 900) / 30) + 's (' + Math.round((this.idleFrames + 900) / 1800) + ' min)');
             }
         }

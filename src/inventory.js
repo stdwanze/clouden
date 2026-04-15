@@ -43,6 +43,9 @@ CM.Inventory = class Inventory {
         return this.open;
     }
 
+    addItemCount(type, count) {
+        for (var n = 0; n < count; n++) this.addItem(type);
+    }
     addItem(type) {
         for (var i = 0; i < this.slots.length; i++) {
             if (this.slots[i] && this.slots[i].type === type) {

@@ -12,7 +12,8 @@ CM.Minimap = class Minimap {
         var ox     = renderer.getScreenWidth() - this.margin - s;
         var oy     = this.margin;
         var half   = s / 2;
-        var scale  = half / this.radius;
+        var activeRadius = CM.fernrohrActive ? this.radius * 1.75 : this.radius;
+        var scale  = half / activeRadius;
         var CHUNK  = world.TILESIZE * world.CHUNKWIDTHINTILES; // 960
         var TILE   = world.TILESIZE;                           // 32
         var tilePixels = Math.ceil(TILE * scale) + 1;
@@ -32,10 +33,10 @@ CM.Minimap = class Minimap {
         var py = player.position.y;
 
         // land tiles
-        var chunkX0 = Math.floor((px - this.radius) / CHUNK);
-        var chunkX1 = Math.floor((px + this.radius) / CHUNK);
-        var chunkY0 = Math.floor((py - this.radius) / CHUNK);
-        var chunkY1 = Math.floor((py + this.radius) / CHUNK);
+        var chunkX0 = Math.floor((px - activeRadius) / CHUNK);
+        var chunkX1 = Math.floor((px + activeRadius) / CHUNK);
+        var chunkY0 = Math.floor((py - activeRadius) / CHUNK);
+        var chunkY1 = Math.floor((py + activeRadius) / CHUNK);
 
         for (var cy2 = chunkY0; cy2 <= chunkY1; cy2++) {
             for (var cx2 = chunkX0; cx2 <= chunkX1; cx2++) {
@@ -73,6 +74,21 @@ CM.Minimap = class Minimap {
                 x: ox + half + (wx - px) * scale,
                 y: oy + half + (wy - py) * scale
             };
+        }
+
+        // floating islands — nur wenn skyMapFound + compassActive
+        if (CM.skyMapFound && CM.compassActive) {
+            world.getObjects().forEach(function(obj) {
+                if (obj instanceof CM.FloatingIsland) {
+                    var mid = obj.getMidPoint ? obj.getMidPoint() : obj.position;
+                    var p = toScreen(mid.x, mid.y);
+                    ctx.fillStyle = 'rgba(160,220,255,0.85)';
+                    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+                    ctx.strokeStyle = 'rgba(100,180,255,0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(p.x - 4, p.y - 4, 8, 8);
+                }
+            });
         }
 
         // blockhütten, blimp, vogelscheuchen, npcs

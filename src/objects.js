@@ -363,9 +363,7 @@ CM.Blimp = class Blimp  extends CM.VehicleSprite{
         this.scores.add(new CM.Health(30));
         
         this.consumptionEfficiancy = 0.01;
-        this.windLayers = CM.WindLayers.map(function(l) {
-            return { zMin: l.zMin, zMax: l.zMax, wind: new CM.Point(l.wind.x, l.wind.y) };
-        });
+        this.windLayers = CM.WindLayers; // live reference — storm can mutate wind in-place
         this.wind = new CM.Point(0, 0);
         this.sailMode = false;
         this.hitmanager = new CM.Hitable();

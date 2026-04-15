@@ -28,6 +28,8 @@ CM.CloudEngine=    class CloudEngine{
             this.nearbyNPC = null;
             this.buildMenuOpen = false;
             this.buildMenuIndex = 0;
+            this.debugMenuOpen = false;
+            this.debugMenuIndex = 0;
             this.bridgePlacementMode = false;
             this.storm = new CM.StormManager();
 
@@ -299,6 +301,7 @@ CM.CloudEngine=    class CloudEngine{
                 _ctx2.fillText('[ Höhle ]', this.renderer.getScreenWidth() - 80, 20);
             }
             if (this.buildMenuOpen) this.drawBuildMenu();
+            if (this.debugMenuOpen) this.drawDebugMenu();
             if (this.bridgePlacementMode) {
                 var _r = this.renderer;
                 var _hint = '[ENTER] Br\u00fccke bauen  [ESC] Abbrechen';
@@ -537,8 +540,26 @@ CM.CloudEngine=    class CloudEngine{
                 return;
             }
 
+            if (this.debugMenuOpen) {
+                if (k === 13) {
+                    var ditems = this.getDebugItems();
+                    ditems[this.debugMenuIndex].action();
+                } else if (k === 37) {
+                    this.debugMenuIndex = Math.max(0, this.debugMenuIndex - 1);
+                } else if (k === 39) {
+                    this.debugMenuIndex = Math.min(this.getDebugItems().length - 1, this.debugMenuIndex + 1);
+                } else if (k === 27) {
+                    this.debugMenuOpen = false;
+                }
+                return;
+            }
+
            switch(""+k)
             {
+                case "68" :
+                    this.debugMenuOpen = !this.debugMenuOpen;
+                    if (this.debugMenuOpen) this.debugMenuIndex = 0;
+                    break;
                 case "70" :
                     if (this.player.isMounted()) {
                         var v = this.player.vehicle;
@@ -572,7 +593,7 @@ CM.CloudEngine=    class CloudEngine{
         }
         handleMove(_k,currentlyPressed)
         {
-            if (this.buildMenuOpen || this.hutMenuOpen || this.inventory.isOpen()) return;
+            if (this.buildMenuOpen || this.hutMenuOpen || this.inventory.isOpen() || this.debugMenuOpen) return;
             var moving = false;
             currentlyPressed.forEach(_=>{
                 switch(""+_[0])
@@ -835,6 +856,26 @@ CM.CloudEngine=    class CloudEngine{
             CM.SaveLoad.save(this);
             this.notify('Kompass hergestellt!', 120);
         }
+        tryCraftFernrohr() {
+            if (!this.nearbyHut || !this.nearbyHut.hasCraftingStation) return;
+            var slots = this.inventory.slots;
+            var wi = slots.findIndex(function(s) { return s && s.type === 'WOOD'; });
+            var woodHave = wi >= 0 ? slots[wi].count : 0;
+            var crystalScore = this.player.getScores().get('CRYSTAL');
+            var crystalHave = crystalScore ? crystalScore.getScore() : 0;
+            if (woodHave < 2 || crystalHave < 2) {
+                var missing = [];
+                if (woodHave < 2) missing.push('2 Holz');
+                if (crystalHave < 2) missing.push('2 Kristalle (vorhanden: ' + crystalHave + ')');
+                this.notify('Ben\u00f6tigt: ' + missing.join(' + '), 180);
+                return;
+            }
+            slots[wi].count -= 2; if (slots[wi].count === 0) slots[wi] = null;
+            crystalScore.reduce(2);
+            this.inventory.addItem('FERNROHR');
+            CM.SaveLoad.save(this);
+            this.notify('Fernrohr hergestellt!', 120);
+        }
         tryUseSelectedInventory() {
             if (!this.inventory.isOpen()) return;
             var item = this.inventory.getSelectedItem();
@@ -851,6 +892,30 @@ CM.CloudEngine=    class CloudEngine{
                 this.torchActive = true;
                 this.torchTimer = 60 * 60; // 1 Minute bei 60 FPS
                 this.notify('Fackel angezündet! (1 Minute)', 120);
+                return;
+            }
+            if (item.type === 'FERNROHR') {
+                if (CM.fernrohrActive) {
+                    this.notify('Fernrohr bereits aktiv.', 120);
+                    return;
+                }
+                this.inventory.removeSelectedItem();
+                CM.fernrohrActive = true;
+                this.notify('Fernrohr aktiviert! Minimap-Sichtweite erh\u00f6ht.', 180);
+                return;
+            }
+            if (item.type === 'COMPASS') {
+                if (!CM.skyMapFound) {
+                    this.notify('Himmelskarte fehlt! Finde sie zuerst.', 120);
+                    return;
+                }
+                if (CM.compassActive) {
+                    this.notify('Kompass bereits aktiv.', 120);
+                    return;
+                }
+                this.inventory.removeSelectedItem();
+                CM.compassActive = true;
+                this.notify('Kompass aktiviert! Floating Islands auf Minimap sichtbar.', 180);
                 return;
             }
             if (item.type === 'LAMP') {
@@ -1209,6 +1274,27 @@ CM.CloudEngine=    class CloudEngine{
                         // cap
                         ctx.fillStyle = '#4a2a08'; ctx.fillRect(cx - 6, cy - 16, 12, 3);
                     }
+                },
+                {
+                    name: 'Fernrohr herstellen',
+                    sub: '2 Holz + 2 Kristalle',
+                    action: function() { self.tryCraftFernrohr(); },
+                    drawPict: function(ctx, cx, cy) {
+                        // outer tube
+                        ctx.fillStyle = '#8B5E3C';
+                        ctx.fillRect(cx - 16, cy - 5, 22, 10);
+                        // inner tube (extended)
+                        ctx.fillStyle = '#6a4020';
+                        ctx.fillRect(cx + 4, cy - 3, 14, 6);
+                        // lens (blue crystal)
+                        ctx.fillStyle = '#88ccff';
+                        ctx.beginPath(); ctx.arc(cx + 18, cy, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#4499cc'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.arc(cx + 18, cy, 4, 0, Math.PI * 2); ctx.stroke();
+                        // eyepiece
+                        ctx.fillStyle = '#4a2a08';
+                        ctx.fillRect(cx - 18, cy - 7, 5, 14);
+                    }
                 }
             ];
             // main
@@ -1351,6 +1437,247 @@ CM.CloudEngine=    class CloudEngine{
             var hint = '\u2190 \u2192 ausw\u00e4hlen   ENTER best\u00e4tigen' + back;
             var hintW = ctx.measureText(hint).width;
             ctx.fillText(hint, px + Math.floor((panelW - hintW) / 2), py + panelH - 8);
+            ctx.restore();
+        }
+        getDebugItems() {
+            var self = this;
+            var inv  = this.inventory;
+            var pl   = this.player;
+            function score(k) { return pl.getScores().get(k); }
+            return [
+                {
+                    name: '+20 Holz',
+                    sub: 'WOOD',
+                    action: function() { inv.addItemCount('WOOD', 20); self.notify('[DBG] +20 Holz', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#8B5E3C';
+                        ctx.fillRect(cx - 12, cy - 5, 24, 10);
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(cx - 10, cy - 3, 6, 6); ctx.fillRect(cx + 4, cy - 3, 6, 6);
+                    }
+                },
+                {
+                    name: '+20 Stein',
+                    sub: 'STONE',
+                    action: function() { inv.addItemCount('STONE', 20); self.notify('[DBG] +20 Stein', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#888';
+                        ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#aaa';
+                        ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 5, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: '+20 Reed',
+                    sub: 'REED',
+                    action: function() { inv.addItemCount('REED', 20); self.notify('[DBG] +20 Reed', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.strokeStyle = '#7a9a40'; ctx.lineWidth = 2;
+                        for (var r = -2; r <= 2; r++) {
+                            ctx.beginPath(); ctx.moveTo(cx + r * 4, cy + 12); ctx.lineTo(cx + r * 4, cy - 12); ctx.stroke();
+                        }
+                        ctx.fillStyle = '#5a7a20';
+                        ctx.fillRect(cx - 10, cy - 14, 20, 5);
+                    }
+                },
+                {
+                    name: '+10 Kristall',
+                    sub: 'CRYSTAL',
+                    action: function() { var s = score('CRYSTAL'); if (s) s.up(10); self.notify('[DBG] +10 Kristall', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#88ccff';
+                        ctx.beginPath(); ctx.moveTo(cx, cy - 14); ctx.lineTo(cx + 8, cy); ctx.lineTo(cx, cy + 14); ctx.lineTo(cx - 8, cy); ctx.closePath(); ctx.fill();
+                        ctx.strokeStyle = '#4499cc'; ctx.lineWidth = 1; ctx.stroke();
+                    }
+                },
+                {
+                    name: '+100 Münzen',
+                    sub: 'COINS',
+                    action: function() { var s = score('COINS'); if (s) s.up(100); self.notify('[DBG] +100 M\u00fcnzen', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#f4c820';
+                        ctx.beginPath(); ctx.arc(cx, cy, 13, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#c8a000'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+                        ctx.fillText('$', cx, cy + 5);
+                    }
+                },
+                {
+                    name: '+Fuel',
+                    sub: 'FUEL (Inventory)',
+                    action: function() { inv.addItem('FUEL'); self.notify('[DBG] Fuel hinzugef\u00fcgt', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#4af';
+                        ctx.fillRect(cx - 7, cy - 13, 14, 18);
+                        ctx.fillStyle = '#2288cc';
+                        ctx.fillRect(cx - 5, cy - 11, 10, 14);
+                        ctx.fillStyle = '#88ddff';
+                        ctx.fillRect(cx - 3, cy - 5, 6, 8);
+                        ctx.fillStyle = '#6a4020';
+                        ctx.fillRect(cx - 4, cy - 16, 8, 5);
+                    }
+                },
+                {
+                    name: '+10 Ammo',
+                    sub: 'AMMO',
+                    action: function() { var s = score('AMMO'); if (s) s.up(10); self.notify('[DBG] +10 Ammo', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+                        for (var a = -2; a <= 2; a++) {
+                            ctx.beginPath(); ctx.moveTo(cx - 12, cy + a * 4); ctx.lineTo(cx + 10, cy + a * 4); ctx.stroke();
+                            ctx.fillStyle = '#888'; ctx.fillRect(cx + 7, cy + a * 4 - 2, 5, 4);
+                        }
+                    }
+                },
+                {
+                    name: 'Volles HP',
+                    sub: 'HEALTH',
+                    action: function() { var s = score('HEALTH'); if (s) s.up(s.getMax()); self.notify('[DBG] HP voll', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#dd3333';
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy + 10);
+                        ctx.bezierCurveTo(cx - 16, cy - 2, cx - 16, cy - 12, cx, cy - 5);
+                        ctx.bezierCurveTo(cx + 16, cy - 12, cx + 16, cy - 2, cx, cy + 10);
+                        ctx.fill();
+                    }
+                },
+                {
+                    name: 'Himmelskarte',
+                    sub: 'skyMapFound',
+                    action: function() { CM.skyMapFound = true; self.notify('[DBG] Himmelskarte aktiviert!', 120); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#334466'; ctx.fillRect(cx - 13, cy - 11, 26, 22);
+                        ctx.strokeStyle = '#f4c820'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 8, cy); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(cx, cy - 8); ctx.lineTo(cx, cy + 8); ctx.stroke();
+                        ctx.fillStyle = '#f4c820';
+                        ctx.beginPath(); ctx.arc(cx + 5, cy - 5, 3, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Kompass',
+                    sub: 'COMPASS',
+                    action: function() { inv.addItem('COMPASS'); self.notify('[DBG] Kompass hinzugef\u00fcgt', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(cx, cy, 13, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = '#cc2222';
+                        ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx - 3, cy); ctx.lineTo(cx + 3, cy); ctx.closePath(); ctx.fill();
+                        ctx.fillStyle = '#aaa';
+                        ctx.beginPath(); ctx.moveTo(cx, cy + 10); ctx.lineTo(cx - 3, cy); ctx.lineTo(cx + 3, cy); ctx.closePath(); ctx.fill();
+                        ctx.fillStyle = '#ffe866'; ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Fackel',
+                    sub: 'TORCH',
+                    action: function() { inv.addItem('TORCH'); self.notify('[DBG] Fackel hinzugef\u00fcgt', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 2, cy - 10, 4, 22);
+                        ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(cx, cy - 12, 7, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(cx, cy - 14, 5, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Himmelsstein',
+                    sub: 'EGG',
+                    action: function() { inv.addItem('EGG'); self.notify('[DBG] Himmelsstein hinzugef\u00fcgt', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#9966cc';
+                        ctx.beginPath(); ctx.ellipse(cx, cy, 9, 12, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#cc99ff'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.ellipse(cx, cy, 9, 12, 0, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                        ctx.beginPath(); ctx.ellipse(cx - 3, cy - 4, 3, 5, -0.4, 0, Math.PI * 2); ctx.fill();
+                    }
+                },
+                {
+                    name: 'Fernrohr',
+                    sub: 'FERNROHR',
+                    action: function() { inv.addItem('FERNROHR'); self.notify('[DBG] Fernrohr hinzugef\u00fcgt', 90); },
+                    drawPict: function(ctx, cx, cy) {
+                        ctx.fillStyle = '#8B5E3C'; ctx.fillRect(cx - 16, cy - 5, 22, 10);
+                        ctx.fillStyle = '#6a4020'; ctx.fillRect(cx + 4, cy - 3, 14, 6);
+                        ctx.fillStyle = '#88ccff';
+                        ctx.beginPath(); ctx.arc(cx + 18, cy, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#4499cc'; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.arc(cx + 18, cy, 4, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = '#4a2a08'; ctx.fillRect(cx - 18, cy - 7, 5, 14);
+                    }
+                },
+            ];
+        }
+        drawDebugMenu() {
+            var ctx = this.renderer.ctxt;
+            var sw  = this.renderer.getScreenWidth();
+            var sh  = this.renderer.getScreenHeight();
+            var items = this.getDebugItems();
+
+            var CARD_W  = 110;
+            var CARD_H  = 104;
+            var CARD_GAP = 10;
+            var PAD      = 20;
+            var TITLE_H  = 30;
+            var HINT_H   = 22;
+
+            var cols     = Math.min(items.length, 6);
+            var rows     = Math.ceil(items.length / cols);
+            var panelW   = cols * CARD_W + (cols - 1) * CARD_GAP + PAD * 2;
+            var panelH   = TITLE_H + rows * CARD_H + (rows - 1) * CARD_GAP + HINT_H + PAD * 2;
+            var px       = Math.floor((sw - panelW) / 2);
+            var py       = Math.floor((sh - panelH) / 2);
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0, 0, sw, sh);
+
+            ctx.fillStyle = 'rgba(10,8,20,0.97)';
+            this.roundRect(ctx, px, py, panelW, panelH, 10); ctx.fill();
+            ctx.strokeStyle = 'rgba(80,200,120,0.5)';
+            ctx.lineWidth = 1.5;
+            this.roundRect(ctx, px, py, panelW, panelH, 10); ctx.stroke();
+
+            ctx.font = 'bold 14px monospace';
+            ctx.fillStyle = '#60dd80';
+            ctx.fillText('DEBUG', px + PAD, py + 20);
+
+            for (var i = 0; i < items.length; i++) {
+                var item   = items[i];
+                var col    = i % cols;
+                var row    = Math.floor(i / cols);
+                var cardX  = px + PAD + col * (CARD_W + CARD_GAP);
+                var cardY  = py + TITLE_H + PAD + row * (CARD_H + CARD_GAP);
+                var sel    = i === this.debugMenuIndex;
+
+                ctx.fillStyle = sel ? 'rgba(20,60,30,0.9)' : 'rgba(15,18,15,0.9)';
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6); ctx.fill();
+                ctx.strokeStyle = sel ? 'rgba(80,220,120,0.9)' : 'rgba(40,80,50,0.5)';
+                ctx.lineWidth = sel ? 2 : 1;
+                this.roundRect(ctx, cardX, cardY, CARD_W, CARD_H, 6); ctx.stroke();
+
+                ctx.font = 'bold 11px monospace';
+                ctx.fillStyle = sel ? '#80ff90' : '#40aa60';
+                var nw = ctx.measureText(item.name).width;
+                ctx.fillText(item.name, cardX + Math.floor((CARD_W - nw) / 2), cardY + 16);
+
+                if (item.drawPict) {
+                    ctx.save();
+                    item.drawPict(ctx, Math.floor(cardX + CARD_W / 2), cardY + 54);
+                    ctx.restore();
+                }
+
+                if (item.sub) {
+                    ctx.font = '9px monospace';
+                    ctx.fillStyle = '#336644';
+                    var sw2 = ctx.measureText(item.sub).width;
+                    ctx.fillText(item.sub, cardX + Math.floor((CARD_W - sw2) / 2), cardY + 92);
+                }
+            }
+
+            ctx.font = '11px monospace';
+            ctx.fillStyle = '#336644';
+            var hint = '\u2190 \u2192 ausw\u00e4hlen   ENTER ausf\u00fchren   ESC schlie\u00dfen';
+            var hw = ctx.measureText(hint).width;
+            ctx.fillText(hint, px + Math.floor((panelW - hw) / 2), py + panelH - 8);
             ctx.restore();
         }
         drawWindRose(blimp) {
