@@ -320,7 +320,7 @@ CM.DragonEgg = class DragonEgg extends CM.Sprite {
 CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
     constructor(location,image,z,scalingfactor)
     {
-        console.log("init sprite "+image.src);
+        console.log("init sprite "+(Array.isArray(image) ? '[animation]' : image.src));
       super(image, location,z,false,scalingfactor);
       this.mountedState = false;
    //   this.sprite = new CM.Sprite(image,location,z,false,scalingfactor);
@@ -346,6 +346,7 @@ CM.VehicleSprite = class VehicleSprite extends CM.Sprite{
         super.draw(renderer);
      }
      tick(){
+         super.tick();
          if(this.ticker) this.ticker(this)
      }
      setTicker(func)

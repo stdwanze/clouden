@@ -9,7 +9,8 @@ function makeGroundEnemy(px = 50, py = 50) {
 }
 
 function makeDragon(px = 100, py = 100) {
-  return new CM.Dragon(new CM.Point(px, py), img());
+  const i = img();
+  return new CM.Dragon(new CM.Point(px, py), { right: i, left: i });
 }
 
 function makePlayer(px = 0, py = 0, z = CM.GroundLevel) {
@@ -140,7 +141,7 @@ describe('CM.Dragon', () => {
     d.idleSoundId = null;
     // Stub out sound update to avoid issues
     CM.Sound.updateSpatialLoop = () => null;
-    const p = makePlayer(100, 0, CM.GroundLevel);
+    const p = makePlayer(100, 0, CM.FloatLevel); // same z-level as dragon
     const xBefore = d.position.x;
     d.tick(p);
     expect(d.position.x).toBeGreaterThan(xBefore);
@@ -152,11 +153,123 @@ describe('CM.Dragon', () => {
     CM.Sound.playAt = jest.fn();
     const fired = [];
     d.setFireBallCreator((...args) => fired.push(args));
-    const p = makePlayer(100, 0, CM.GroundLevel);
+    const p = makePlayer(100, 0, CM.FloatLevel); // same z-level as dragon
     d.cooldown = 0;
     d.tick(p);
     expect(fired.length).toBe(1);
     expect(d.cooldown).toBe(120);
+  });
+});
+
+// ── CM.CaveCrab ───────────────────────────────────────────────────────────────
+
+describe('CM.CaveCrab', () => {
+  function makeCrab(px = 0, py = 0) {
+    return new CM.CaveCrab(new CM.Point(px, py), img());
+  }
+
+  beforeEach(() => {
+    CM.Sound.updateSpatialLoop = () => null;
+    CM.Sound.playAt = jest.fn();
+  });
+
+  test('z is CM.CaveLevel', () => {
+    expect(makeCrab().z).toBe(CM.CaveLevel);
+  });
+
+  test('starts with 10 HP', () => {
+    expect(makeCrab().scores.get('HEALTH').getScore()).toBe(10);
+  });
+
+  test('isCaveCrab flag is true', () => {
+    expect(makeCrab().isCaveCrab).toBe(true);
+  });
+
+  test('speed is 1.1', () => {
+    expect(makeCrab().speed).toBe(1.1);
+  });
+
+  test('tick() does nothing when player is null', () => {
+    expect(() => makeCrab().tick(null)).not.toThrow();
+    expect(makeCrab().position.x).toBe(0);
+  });
+
+  test('tick() does nothing when player is above cave level', () => {
+    const c = makeCrab(0, 0);
+    const p = makePlayer(5, 0, CM.GroundLevel); // well above CaveLevel
+    c.tick(p);
+    expect(c.position.x).toBe(0);
+  });
+
+  test('tick() moves toward player at cave level when within aggro range (no torch)', () => {
+    const c = makeCrab(0, 0);
+    c.setTileInfoRetriever(() => ({ isLand: () => true }));
+    const p = makePlayer(30, 0, CM.CaveLevel);
+    c.tick(p, false, false); // torchActive = false, aggroRadius = 50
+    expect(c.position.x).toBeGreaterThan(0);
+  });
+
+  test('tick() uses larger aggro radius with torch active', () => {
+    const cNoTorch = makeCrab(0, 0);
+    const cTorch   = makeCrab(0, 0);
+    cNoTorch.setTileInfoRetriever(() => ({ isLand: () => true }));
+    cTorch.setTileInfoRetriever(() => ({ isLand: () => true }));
+    const pFar = makePlayer(100, 0, CM.CaveLevel); // 100px — beyond default aggro (50) but within torch aggro (200)
+    cNoTorch.tick(pFar, false, false);
+    cTorch.tick(pFar, false, true);
+    // no-torch crab doesn't reach aggro range; torch crab does
+    expect(cNoTorch.position.x).toBe(0);
+    expect(cTorch.position.x).toBeGreaterThan(0);
+  });
+
+  test('tick() deals 1 damage on contact (dist < 15)', () => {
+    const c = makeCrab(0, 0);
+    c.setTileInfoRetriever(() => ({ isLand: () => true }));
+    const p = makePlayer(5, 0, CM.CaveLevel);
+    c.tick(p, false, true);
+    expect(p.getScores().get('HEALTH').getScore()).toBe(9);
+  });
+});
+
+// ── CM.Dragon._updateDirection ────────────────────────────────────────────────
+
+describe('CM.Dragon direction', () => {
+  function makeDragonAt(px, py) {
+    const i = img();
+    const d = new CM.Dragon(new CM.Point(px, py), { right: i, left: i });
+    d.idleSoundId = null;
+    CM.Sound.updateSpatialLoop = () => null;
+    CM.Sound.playAt = jest.fn();
+    return d;
+  }
+
+  test('starts facing right (facingLeft = false)', () => {
+    expect(makeDragonAt(0, 0).facingLeft).toBe(false);
+  });
+
+  test('facing switches to left when moving left', () => {
+    const d = makeDragonAt(100, 0); // within 150px of player
+    const p = makePlayer(0, 0, CM.FloatLevel); // player to the left
+    d.tick(p); // dx < 0 → facingLeft = true
+    expect(d.facingLeft).toBe(true);
+  });
+
+  test('facing stays right when moving right', () => {
+    const d = makeDragonAt(0, 0);
+    const p = makePlayer(100, 0, CM.FloatLevel);
+    d.tick(p);
+    expect(d.facingLeft).toBe(false);
+  });
+});
+
+// ── CM.GroundEnemy.draw ───────────────────────────────────────────────────────
+
+describe('CM.GroundEnemy.draw', () => {
+  test('draw() does not throw', () => {
+    const { makeRenderer } = require('./helpers');
+    const { renderer } = makeRenderer();
+    const e = new CM.GroundEnemy(new CM.Point(0, 0), img());
+    expect(() => e.draw(renderer)).not.toThrow();
   });
 });
 
@@ -169,7 +282,8 @@ describe('CM.IslandDragon', () => {
   }
 
   function makeIslandDragon(px = 0, py = 0, island = makeIsland()) {
-    return new CM.IslandDragon(new CM.Point(px, py), img(), island);
+    const i = img();
+    return new CM.IslandDragon(new CM.Point(px, py), { right: i, left: i }, island);
   }
 
   beforeEach(() => {

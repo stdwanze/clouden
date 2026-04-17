@@ -158,4 +158,46 @@ describe('CM.InputHandler', () => {
     expect(handler.inrange(36, 37, 40)).toBe(false);
     expect(handler.inrange(41, 37, 40)).toBe(false);
   });
+
+  test('pollGamepad does nothing when navigator.getGamepads returns empty', () => {
+    navigator.getGamepads = () => [];
+    expect(() => handler.pollGamepad()).not.toThrow();
+  });
+
+  test('pollGamepad processes button press and sets currentKeys', () => {
+    const btn = { pressed: true };
+    const gp = {
+      buttons: Array(16).fill({ pressed: false }),
+      axes: [0, 0, 0, 0],
+    };
+    gp.buttons[12] = btn; // D-Up → keyCode 38
+    navigator.getGamepads = () => [gp];
+    handler.pollGamepad();
+    expect(handler.currentKeys[38]).toBe(true);
+  });
+
+  test('pollGamepad processes button release and clears currentKeys', () => {
+    // first press
+    const gp = {
+      buttons: Array(16).fill({ pressed: false }),
+      axes: [0, 0, 0, 0],
+    };
+    gp.buttons[12] = { pressed: true };
+    navigator.getGamepads = () => [gp];
+    handler.pollGamepad(); // press
+    // now release
+    gp.buttons[12] = { pressed: false };
+    handler.pollGamepad(); // release
+    expect(handler.currentKeys[38]).toBe(false);
+  });
+
+  test('pollGamepad processes left stick left direction', () => {
+    const gp = {
+      buttons: Array(16).fill({ pressed: false }),
+      axes: [-0.8, 0, 0, 0], // stick fully left
+    };
+    navigator.getGamepads = () => [gp];
+    handler.pollGamepad();
+    expect(handler.currentKeys[37]).toBe(true); // left arrow
+  });
 });

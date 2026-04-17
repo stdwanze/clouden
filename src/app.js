@@ -2028,7 +2028,7 @@ CM.CloudEngine=    class CloudEngine{
                 blimp.setIslandRetriever(_islandGetter);
                 this.player.setIslandRetriever(_islandGetter);
                 
-                var dragon = new CM.Dragon(new CM.Point( 150,150),this.imagerepo.getImage("dragon_small"));
+                var dragon = new CM.Dragon(new CM.Point( 150,150), { right: this.imagerepo.getImage("dragon"), left: this.imagerepo.getImage("dragonLeft") });
                 dragon.setFireBallCreator(CM.FireBallCreator(this.world,this.imagerepo));
                 dragon.setRemover(this.world.removeObject.bind(this.world));
                 var _w = this.world;

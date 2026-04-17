@@ -109,6 +109,9 @@ CM.FloatingIsland = class FloatingIsland {
     }
 
     draw(renderer) {
+        // only visible after player collected the skymap
+        if (!CM.skyMapFound && !renderer.playerOnIsland) return;
+
         var ctx     = renderer.ctxt;
         var T       = this.TILE;
         var isBelow = !renderer.playerOnIsland && renderer.zoom > CM.FloatLevel + 0.25;
@@ -260,8 +263,8 @@ CM.FloatingIsland = class FloatingIsland {
         world.addObject(chest);
 
         var dragonPos = pick();
-        var dragon = new CM.IslandDragon(dragonPos, imagerepo.getImage('dragon_small'), self);
-        dragon.setFireBallCreator(CM.FireBallCreator(world, imagerepo));
+        var dragon = new CM.IslandDragon(dragonPos, { right: imagerepo.getImage('island_dragon'), left: imagerepo.getImage('island_dragonLeft') }, self);
+        dragon.setTileInfoRetriever(CM.TILEACCESS(world));
         dragon.setRemover(world.removeObject.bind(world));
         var _w = world;
         dragon.setScarecrowGetter(function() {
@@ -288,8 +291,8 @@ CM.FloatingIsland = class FloatingIsland {
 
         var guardCount = 1 + Math.floor(CM.rng() * 2);
         for (var i = 0; i < guardCount; i++) {
-            var dragon = new CM.IslandDragon(pick(), imagerepo.getImage('dragon_small'), self);
-            dragon.setFireBallCreator(CM.FireBallCreator(world, imagerepo));
+            var dragon = new CM.IslandDragon(pick(), { right: imagerepo.getImage('island_dragon'), left: imagerepo.getImage('island_dragonLeft') }, self);
+            dragon.setTileInfoRetriever(CM.TILEACCESS(world));
             dragon.setRemover(world.removeObject.bind(world));
             var _w = world;
             dragon.setScarecrowGetter(function() {

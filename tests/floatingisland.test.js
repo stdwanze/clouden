@@ -152,6 +152,9 @@ describe('CM.FloatingIsland tick / getMidPoint', () => {
 // ── draw — shadow (player below island) ──────────────────────────────────────
 
 describe('CM.FloatingIsland draw() shadow', () => {
+    beforeEach(() => { CM.skyMapFound = true; });
+    afterEach(()  => { CM.skyMapFound = false; });
+
     test('draws fillRects for shadow when player is below island', () => {
         const island = new CM.FloatingIsland(new CM.Point(0, 0));
         const { renderer, ctx } = makeRenderer(CM.GroundLevel); // below island
@@ -183,6 +186,9 @@ describe('CM.FloatingIsland draw() shadow', () => {
 // ── draw — island tiles ───────────────────────────────────────────────────────
 
 describe('CM.FloatingIsland draw() tiles', () => {
+    beforeEach(() => { CM.skyMapFound = true; });
+    afterEach(()  => { CM.skyMapFound = false; });
+
     function tileCount(shape) {
         return shape.reduce((sum, row) => sum + row.filter(v => v).length, 0);
     }

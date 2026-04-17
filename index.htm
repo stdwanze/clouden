@@ -144,8 +144,6 @@
     window.addEventListener("load", function() {
         updateSaveIndicator();
         CM.Sound.init();
-        CM.Sound.toggleMute();
-        document.getElementById('muteBtn').classList.add('muted');
 
         // Init seeded RNG — use saved seed for reproducible world, or generate a new one.
         var seed = CM.SaveLoad.getSavedSeed();

@@ -501,7 +501,7 @@ CM.ADDENEMYMAKER = function (world, imagerepo)
 
     function makeDragon (location, i)
     {
-        var dragon = new CM.Dragon(location.clone(),imagerepo.getImage("dragon_small"));
+        var dragon = new CM.Dragon(location.clone(), { right: imagerepo.getImage("dragon"), left: imagerepo.getImage("dragonLeft") });
         dragon.setFireBallCreator(CM.FireBallCreator(world,imagerepo));
         dragon.setRemover(world.removeObject.bind(world));
         dragon.setScarecrowGetter(getScarecrows);

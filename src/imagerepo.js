@@ -62,6 +62,10 @@ CM.ImageRepo = class Repo{
 				  this.registerAnimation("img/player",4,"png","playerAni");
 				  this.registerAnimation("img/playerleft",4,"png","playerAniLeft");
 				  this.registerAnimation("img/crab",8,"png","crab");
+				  this.registerAnimation("img/island_dragon",4,"png","island_dragon");
+				  this.registerAnimation("img/island_dragonleft",4,"png","island_dragonLeft");
+				  this.registerAnimation("img/dragon",4,"png","dragon");
+				  this.registerAnimation("img/dragonleft",4,"png","dragonLeft");
 				// 	this.registerAnimation("img/player_left",4,"png","playerLeft");
 		}
 		load() {

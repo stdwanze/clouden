@@ -26,11 +26,15 @@ CM.Sound = (function() {
         define('walk_0',     ['snd/walk_0.ogg'],      { volume: 0.3 });
         define('walk_1',     ['snd/walk_1.ogg'],      { volume: 0.3 });
         define('walk_2',     ['snd/walk_2.ogg'],      { volume: 0.3 });
-        define('enemy_shoot',['snd/enemy_shoot.ogg'],  { volume: 0.5 });
-        define('enemy_hit',  ['snd/enemy_hit.ogg'],   { volume: 0.9 });
-        define('enemy_idle', ['snd/enemy_idle.ogg'],  { volume: 0.7, loop: true });
+        define('enemy_shoot',  ['snd/enemy_shoot.ogg'],  { volume: 0.5 });
+        define('enemy_hit',    ['snd/enemy_hit.ogg'],   { volume: 0.9 });
+        define('enemy_idle',   ['snd/enemy_idle.ogg'],  { volume: 0.7, loop: true });
+        define('dragon_idle',  ['snd/dragon_idle.ogg'], { volume: 0.6, loop: true });
+        define('dragon_shoot', ['snd/dragon_shoot.ogg'],{ volume: 0.7 });
+        define('dragon_walk',  ['snd/dragon_walk.ogg'], { volume: 0.8 });
         define('crab_idle',  ['snd/crab_idle.ogg'],   { volume: 0.5, loop: true });
         define('crab_attack',['snd/crab_attack.ogg'], { volume: 0.8 });
+        define('crab_walk',  ['snd/crab_walk.ogg'],   { volume: 0.4 });
         define('music',      ['snd/music.ogg'],       { volume: 0.15, loop: true });
         define('mine_wood',  ['snd/mine_wood.wav'],   { volume: 0.7 });
         define('mine_stone', ['snd/mine_stone.wav'],  { volume: 0.8 });

@@ -337,6 +337,220 @@ describe('CM.PLAYERDEATH respawn dialog', () => {
   });
 });
 
+// ── CM.BiomeMap ───────────────────────────────────────────────────────────────
+
+describe('CM.BiomeMap', () => {
+  test('returns an object with biomeAt function', () => {
+    const m = CM.BiomeMap(4, 4);
+    expect(typeof m.biomeAt).toBe('function');
+  });
+
+  test('spawnBiome is 0, 1 or 2', () => {
+    const m = CM.BiomeMap(4, 4);
+    expect([0, 1, 2]).toContain(m.spawnBiome);
+  });
+
+  test('biomeAt returns 0 for out-of-bounds coordinates', () => {
+    const m = CM.BiomeMap(4, 4);
+    expect(m.biomeAt(-1, 0)).toBe(0);
+    expect(m.biomeAt(0, -1)).toBe(0);
+    expect(m.biomeAt(99, 0)).toBe(0);
+  });
+
+  test('biomeAt returns values in range 0–3 for valid coords', () => {
+    const m = CM.BiomeMap(8, 8);
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        const b = m.biomeAt(x, y);
+        expect(b).toBeGreaterThanOrEqual(0);
+        expect(b).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  test('no two adjacent biomes differ by more than 1', () => {
+    const m = CM.BiomeMap(6, 6);
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 5; x++) {
+        expect(Math.abs(m.biomeAt(x, y) - m.biomeAt(x + 1, y))).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+// ── CM.MountainMap ────────────────────────────────────────────────────────────
+
+describe('CM.MountainMap', () => {
+  test('returns an object with isMountain function', () => {
+    const m = CM.MountainMap(20, 20, null);
+    expect(typeof m.isMountain).toBe('function');
+  });
+
+  test('isMountain returns false for out-of-bounds', () => {
+    const m = CM.MountainMap(20, 20, null);
+    expect(m.isMountain(-1, 0)).toBe(false);
+    expect(m.isMountain(0, -1)).toBe(false);
+    expect(m.isMountain(99, 0)).toBe(false);
+  });
+
+  test('produces some mountain tiles for a large enough map', () => {
+    const W = 50, H = 50;
+    const m = CM.MountainMap(W, H, null);
+    let count = 0;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (m.isMountain(x, y)) count++;
+      }
+    }
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('respects landArray — tiles marked as non-land are not mountains', () => {
+    // all-false landArray → no tiles are land → no mountains
+    const W = 20, H = 20;
+    const land = new Uint8Array(W * H); // all zeros
+    const m = CM.MountainMap(W, H, land);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        expect(m.isMountain(x, y)).toBe(false);
+      }
+    }
+  });
+});
+
+// ── CM.CAVE_TILECREATOR ───────────────────────────────────────────────────────
+
+describe('CM.CAVE_TILECREATOR', () => {
+  test('returns a function', () => {
+    expect(typeof CM.CAVE_TILECREATOR(makeRepoMock(), 10, [])).toBe('function');
+  });
+
+  test('created function returns a CM.TileSprite', () => {
+    const creator = CM.CAVE_TILECREATOR(makeRepoMock(), 10, []);
+    const ts = creator(0, 0, new CM.Point(0, 0), 32, 0, 0);
+    expect(ts).toBeInstanceOf(CM.TileSprite);
+  });
+
+  test('spawn area (i<3, k<3 at worldx=0, worldy=0) is walkable land', () => {
+    const creator = CM.CAVE_TILECREATOR(makeRepoMock(), 10, []);
+    const ts = creator(1, 1, new CM.Point(0, 0), 32, 0, 0);
+    expect(ts.info.isLand).toBe(true);
+  });
+
+  test('cave exit tile: isCaveExit is true when position matches entrance', () => {
+    const entrance = { tileX: 5, tileY: 5 };
+    const creator = CM.CAVE_TILECREATOR(makeRepoMock(), 20, [entrance]);
+    const ts = creator(5, 5, new CM.Point(0, 0), 32, 0, 0);
+    expect(ts.info.isCaveExit).toBe(true);
+  });
+
+  test('non-exit tile does not have isCaveExit set', () => {
+    const entrance = { tileX: 99, tileY: 99 };
+    const creator = CM.CAVE_TILECREATOR(makeRepoMock(), 20, [entrance]);
+    const ts = creator(2, 2, new CM.Point(0, 0), 32, 3, 3);
+    expect(ts.info.isCaveExit).toBeFalsy();
+  });
+});
+
+// ── CM.CAVE_COLLECTABLEMAKER ──────────────────────────────────────────────────
+
+describe('CM.CAVE_COLLECTABLEMAKER', () => {
+  function makeCaveTile({ land = true, isCaveExit = false } = {}) {
+    return {
+      isLand: () => land,
+      info: { isCaveExit },
+      location: new CM.Point(100, 100),
+    };
+  }
+
+  test('returns a function', () => {
+    expect(typeof CM.CAVE_COLLECTABLEMAKER(makeWorldMock(), makeRepoMock())).toBe('function');
+  });
+
+  test('does nothing for water tiles', () => {
+    const world = makeWorldMock();
+    const maker = CM.CAVE_COLLECTABLEMAKER(world, makeRepoMock());
+    maker(makeCaveTile({ land: false }));
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('does nothing for cave exit tiles', () => {
+    const world = makeWorldMock();
+    const maker = CM.CAVE_COLLECTABLEMAKER(world, makeRepoMock());
+    maker(makeCaveTile({ land: true, isCaveExit: true }));
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('spawns crystal when rand < 0.06', () => {
+    const world = makeWorldMock();
+    const maker = CM.CAVE_COLLECTABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.01; // < 0.06
+    maker(makeCaveTile());
+    CM.rng = origRng;
+    const obj = world.addObject.mock.calls[0]?.[0];
+    expect(obj).toBeInstanceOf(CM.Collectable);
+    expect(obj.typeName).toBe('CRYSTAL');
+  });
+
+  test('spawns skymap when 0.06 <= rand < 0.062 and not yet spawned', () => {
+    const world = makeWorldMock();
+    const maker = CM.CAVE_COLLECTABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.skyMapSpawned = false;
+    CM.rng = () => 0.061; // in [0.06, 0.062)
+    maker(makeCaveTile());
+    CM.rng = origRng;
+    const obj = world.addObject.mock.calls[0]?.[0];
+    expect(obj).toBeInstanceOf(CM.Collectable);
+    expect(obj.typeName).toBe('SKYMAP');
+    CM.skyMapSpawned = false; // reset
+  });
+});
+
+// ── CM.ADDENEMYMAKER_CAVE ─────────────────────────────────────────────────────
+
+describe('CM.ADDENEMYMAKER_CAVE', () => {
+  test('returns a function', () => {
+    expect(typeof CM.ADDENEMYMAKER_CAVE(makeWorldMock(), makeRepoMock())).toBe('function');
+  });
+
+  test('skips chunks already registered (getHitablesByKey returns truthy)', () => {
+    const world = makeWorldMock();
+    world.getHitablesByKey = jest.fn().mockReturnValue({}); // already exists
+    const maker = CM.ADDENEMYMAKER_CAVE(world, makeRepoMock());
+    maker(1, 1);
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('skips when chunk has no land tiles', () => {
+    const world = makeWorldMock();
+    world.getHitablesByKey = jest.fn().mockReturnValue(undefined);
+    world.getChunkByIndeces = jest.fn().mockReturnValue({
+      getTiles: jest.fn().mockReturnValue([{ isLand: () => false, info: {} }]),
+    });
+    const maker = CM.ADDENEMYMAKER_CAVE(world, makeRepoMock());
+    maker(1, 1);
+    expect(world.addObject).not.toHaveBeenCalled();
+  });
+
+  test('adds CaveCrab when land tile exists', () => {
+    const world = makeWorldMock();
+    world.getHitablesByKey = jest.fn().mockReturnValue(undefined);
+    world.getChunkByIndeces = jest.fn().mockReturnValue({
+      getTiles: jest.fn().mockReturnValue([{
+        isLand: () => true,
+        info: { isCaveExit: false },
+        location: { clone: () => new CM.Point(100, 100) },
+      }]),
+    });
+    const maker = CM.ADDENEMYMAKER_CAVE(world, makeRepoMock());
+    maker(1, 1);
+    const crabs = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.CaveCrab);
+    expect(crabs.length).toBeGreaterThan(0);
+  });
+});
+
 // ── CM.MINEABLEMAKER ──────────────────────────────────────────────────────────
 
 describe('CM.MINEABLEMAKER', () => {
@@ -431,5 +645,16 @@ describe('CM.MINEABLEMAKER', () => {
     CM.rng = origRng;
     const trees = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.Mineable && o.resourceType === 'WOOD');
     expect(trees.length).toBeGreaterThan(0);
+  });
+
+  test('spawns berry bushes on interior land tiles when 0.03 <= rand < 0.04', () => {
+    const world = makeWorldMock();
+    const maker = CM.MINEABLEMAKER(world, makeRepoMock());
+    const origRng = CM.rng;
+    CM.rng = () => 0.035;
+    maker(makeTile({ isWaterEdge: false }));
+    CM.rng = origRng;
+    const berries = world.addObject.mock.calls.map(c => c[0]).filter(o => o instanceof CM.BerryBush);
+    expect(berries.length).toBeGreaterThan(0);
   });
 });
